@@ -1,0 +1,18 @@
+{
+  "Version": "1",
+  "Year": "2024",
+  "Semester": "Spring",
+  "project_name": "Enhancing Data Usability: Comprehensive Cleaning and Packaging of Saudi Statistical Authority's Datasets",
+  "Objective": " \n            The goal of this project is to create a comprehensive and cleaned dataset from the Saudi Arabian Statistical Authority, enhancing accessibility and usability for academic, governmental, and commercial purposes. This will facilitate more informed decision-making, research, and analysis across various sectors.\n            ",
+  "Dataset": "\n            The dataset is going to be from the Saudi Arabian Statistical Authority, encompassing diverse statistical data ranging from demographics, economics, education, and healthcare. This comprehensive dataset will be invaluable for multifaceted analysis and research.\n            ",
+  "Rationale": "\n            This project is going to help bridge the gap between raw data availability and practical usability. By cleaning and organizing the data, we make it more accessible and useful for researchers, policy-makers, and businesses, thereby fostering data-driven decision-making and innovation.\n            ",
+  "Approach": "\n            I plan on approaching this capstone through several steps:\n\n            1. Data Collection: Accessing and downloading relevant datasets from the Saudi Arabian Statistical Authority.\n            2. Data Cleaning: Identifying and correcting inaccuracies, removing duplicates, and standardizing data formats.\n            3. Data Analysis: Conducting preliminary analysis to understand data trends and characteristics.\n            4. Data Packaging: Organizing the cleaned data into a user-friendly format, with comprehensive documentation.\n            5. Validation: Ensuring data integrity and accuracy post-cleaning.\n            6. Final Review: A thorough review of the dataset and accompanying documentation.\n            ",
+  "Timeline": "\n            This is a rough timeline for this project:  \n\n            - (1 Week) Data Collection\n            - (2 Weeks) Data Cleaning \n            - (1 Week) Preliminary Data Analysis \n            - (4 Weeks) Data Packaging and Documentation\n            - (2 Weeks) Validation of Data Integrity \n            - (2 Weeks) Final Review and Adjustments\n            - (2 Weeks) Documentation Finalization and Submission\n            ",
+  "Expected Number Students": "\n            One student\n            ",
+  "Possible Issues": "\n            The challenges include ensuring data accuracy and integrity, dealing with potentially large and complex datasets, and addressing any missing or inconsistent data. Additionally, adhering to data privacy and security standards will be crucial throughout the project.\n            ",
+  "Proposed by": "Amjad Altuwayjiri",
+  "Proposed by email": "amjadalt@gwu.edu",
+  "instructor": "None",
+  "instructor_email": "None",
+  "github_repo": "https://github.com/Amjad-Alt/capstone_project"
+}
