@@ -34,19 +34,27 @@ def parse_text_to_data(text):
     for remove_string in strings_to_remove:
         elements = [element.replace(remove_string, '') for element in elements]
 
+    # Delete numbers '19', '4', and '4' (without decimals)
+    elements = [re.sub(r'\b(?:19|4)\b(?![\d.])', '', element)
+                for element in elements]
+    # there is an issue in here where it delted all 4s after the .
+
     # Filter out empty elements and elements containing only periods (with flexible length)
     filtered_elements = [element for element in elements if element.strip(
     ) and not re.fullmatch(r'\.+', element.strip())]
     # print("After filtering:", filtered_elements[:10])  # Print first 10 elements for a brief look
 
-    # Group filtered elements into rows with 7 elements each
+    # Group filtered elements into rows with # of elements each
     rows = [filtered_elements[i:i+56]
             for i in range(0, len(filtered_elements), 56)]
+
+    # Delete every third row after every two rows
+    rows = [row for i, row in enumerate(rows) if i % 3 != 2]
     return rows
 
 
-def create_csv_from_data(data, csv_path):
-    df = pd.DataFrame(data[1:], columns=column_names)
+def create_csv_from_data(data, csv_path, column_names):
+    df = pd.DataFrame(data, columns=column_names)
     df.to_csv(csv_path, index=False)
 
 
@@ -57,10 +65,8 @@ csv_path = '/Users/amjad/OneDrive/المستندات/GWU_Cources/Spring2024/caps
 
 text = extract_text_from_pdf(pdf_path, pages_to_extract)
 data = parse_text_to_data(text)
-# column names
-# column_names = ['General Index','Foodstuffs','Cereals and cereal products','Meat and Poultry', 'Fish and crustaceans','Milk and dairy products','Eggs','Cooking oil and fats',	'Fresh vegetables',	'Preserved and canned vegetables','Legumes and tubers','Fresh fruits','Preserved and canned fruits','Nuts','peanuts','seeds','Sugars and sugar preparations	Beverages','Foodstuffs','other','Tobacco','Outofhome meals','Fabrics','clothing and footwear','Mens fabrics','Womens fabrics','Mens apparel','Womens apparel','Tailoring','Footwear','House and related items','Home repairs',
-# 'Rents', 'Water supply expenditure','Fuel and Power','Home furniture','Furniture and carpet','Home furnishings','Small home appliances', 'kitchenhouse',  'tabletualis', 'Household small items','Home services', 'Basic home appliances','Medical care','Medical care expenses','Other medical expenses','Medicines','Transport and telecommunications','Private transport means','Operation of private transport means','Public transport fees','Telecommunications and related costs','Education and entertainment','Entertainment expenses','Education expenses','Entertainment devices','Other expenses and services','Personal hygiene and care items','Personal goods','Other expenses and services']
 
+# column names
 column_names = ['General Index',
                 'Foodstuffs',
                 'Cereals and cereal products',
@@ -118,4 +124,4 @@ column_names = ['General Index',
                 'Personal goods',
                 'Other expenses and services'
                 ]
-create_csv_from_data(data, csv_path)
+create_csv_from_data(data, csv_path, column_names)
