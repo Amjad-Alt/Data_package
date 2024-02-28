@@ -14,13 +14,22 @@ def extract_text_from_pdf(pdf_path, page_numbers):
     return text
 
 
-pages_to_extract = [10, 11, 12, 13, 14, 15, 16, 17]
+[10, 11, 12, 13, 14, 15, 16, 17]  # Jan and Feb
+[] # Mar and Apr
+[116,117,118,119,120,121,122,123] # May and Jun
+[154, 155, 156, 157, 158, 159, 160, 161] # July and Aug
+[192, 193, 194, 195, 196, 197, 198, 199]  # Sep and Oct
+[230, 231, 232, 233, 234, 235, 236, 237]  # Nov and Dec
+
+pages_to_extract = [192, 193, 194, 195, 196, 197, 198, 199]  # sep and oct
 
 
 def parse_text_to_data(text):
     # Delete non-English characters
     text = re.sub(r'[^a-zA-Z0-9\s,.]', '', text)
     cleaned_text = re.sub(r'[a-zA-Z\u0600-\u06FF]', '', text)
+    
+    # we need to swich all the numbers into English
     # Split the cleaned text into lines or comma-separated values
     elements = re.split(r'[\n,]+', cleaned_text.strip())
 
@@ -28,14 +37,14 @@ def parse_text_to_data(text):
         '99100',
         '2002',
     ]
-    # "FEB", "JAN", 'MAKKAH',
 
     # Remove specified strings from each element
     for remove_string in strings_to_remove:
         elements = [element.replace(remove_string, '') for element in elements]
 
     # Delete numbers '19', '4'
-    elements = [re.sub(r'\b(?:19|(?<![\d.])4\b(?![\d.]))', '', element) for element in elements]
+    elements = [re.sub(r'\b(?:19|(?<![\d.])4\b(?![\d.]))', '', element)
+                for element in elements]
 
     # Filter out empty elements and elements containing only periods (with flexible length)
     filtered_elements = [element for element in elements if element.strip(
