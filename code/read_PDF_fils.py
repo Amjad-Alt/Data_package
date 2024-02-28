@@ -34,15 +34,12 @@ def parse_text_to_data(text):
     for remove_string in strings_to_remove:
         elements = [element.replace(remove_string, '') for element in elements]
 
-    # Delete numbers '19', '4', and '4' (without decimals)
-    elements = [re.sub(r'\b(?:19|4)\b(?![\d.])', '', element)
-                for element in elements]
-    # there is an issue in here where it delted all 4s after the .
+    # Delete numbers '19', '4'
+    elements = [re.sub(r'\b(?:19|(?<![\d.])4\b(?![\d.]))', '', element) for element in elements]
 
     # Filter out empty elements and elements containing only periods (with flexible length)
     filtered_elements = [element for element in elements if element.strip(
     ) and not re.fullmatch(r'\.+', element.strip())]
-    # print("After filtering:", filtered_elements[:10])  # Print first 10 elements for a brief look
 
     # Group filtered elements into rows with # of elements each
     rows = [filtered_elements[i:i+56]
