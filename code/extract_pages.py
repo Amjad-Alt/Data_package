@@ -36,3 +36,4 @@ pages_with_makkah
 
 # from 2012 the name of columns change
 # you can't specify the name of cities in a loop coz it can be in different order in term of pages
+# we can have more than one data like there is the month/year 

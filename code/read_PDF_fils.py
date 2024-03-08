@@ -14,21 +14,52 @@ def extract_text_from_pdf(pdf_path, page_numbers):
     return text
 
 
-[10, 11, 12, 13, 14, 15, 16, 17]  # Jan and Feb
-[] # Mar and Apr
-[116,117,118,119,120,121,122,123] # May and Jun
-[154, 155, 156, 157, 158, 159, 160, 161] # July and Aug
+# Example usage
+pdf_path = "/Users/amjad/OneDrive/المستندات/GWU_Cources/Spring2024/capstone_project/data/2002.pdf"
+page_numbers = [0, 1, 2]  # Example page numbers
+extracted_text = extract_text_from_pdf(pdf_path, page_numbers)
+
+
+
+# 2002
+[29, 30, 31, 32, 33, 34, 35, 36]  # Jan and Feb
+[78, 79, 80, 81, 82, 83, 84, 85]  # Mar and Apr
+[116, 117, 118, 119, 120, 121, 122, 123]  # May and Jun
+[154, 155, 156, 157, 158, 159, 160, 161]  # July and Aug
 [192, 193, 194, 195, 196, 197, 198, 199]  # Sep and Oct
 [230, 231, 232, 233, 234, 235, 236, 237]  # Nov and Dec
 
-pages_to_extract = [192, 193, 194, 195, 196, 197, 198, 199]  # sep and oct
+# 2003
+[29, 30, 31, 32, 33, 34, 35, 36]  # Jan and Feb
+[67, 68, 69, 70, 71, 72, 73, 74]  # Mar and Apr
+[105, 106, 107, 108, 109, 110, 111, 112]  # May and Jun
+[143, 144, 145, 146, 147, 148, 149, 150]  # July and Aug
+[181, 182, 183, 184, 185, 186, 187, 188]  # Sep and Oct
+[219, 220, 221, 222, 223, 224, 225, 226]  # Oct and Dec
+
+# 2004
+[25, 26, 27, 28, 29, 30, 31, 32]  # Jan and Feb
+[59, 60, 61, 62, 63, 64, 65, 66]  # Mar and Apr
+[93, 94, 95, 96, 97, 98, 99, 100]  # May and Jun
+[127, 128, 129, 130, 131, 132, 133, 134]  # July and Aug
+[161, 162, 163, 164, 165, 166, 167, 168]  # Sep and Oct
+[195, 196, 197, 198, 199, 200, 201, 202]  # Oct and Dec
+
+# 2005
+[30, 31, 32, 33, 34, 35, 36, 37]  # Jan and Feb
+[68, 69, 70, 71, 72, 73, 74, 75]  # Mar and Apr
+[106, 107, 108, 109, 110, 111, 112, 113]  # May and Jun
+[137, 138, 139, 140, 141, 142, 143, 144]  # July and Aug
+
+
+pages_to_extract = []
 
 
 def parse_text_to_data(text):
     # Delete non-English characters
     text = re.sub(r'[^a-zA-Z0-9\s,.]', '', text)
     cleaned_text = re.sub(r'[a-zA-Z\u0600-\u06FF]', '', text)
-    
+
     # we need to swich all the numbers into English
     # Split the cleaned text into lines or comma-separated values
     elements = re.split(r'[\n,]+', cleaned_text.strip())
