@@ -4,7 +4,8 @@ from PIL import Image
 import pdf2image
 
 # Set the path for the Tesseract engine executable
-pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
+pytesseract.pytesseract.tesseract_cmd = r'/usr/local/bin/tesseract'
+# pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 # pytesseract.pytesseract.tesseract_cmd = r'C:\\Users\\amjad\\Downloads\\poppler-24.03.0.tar\\poppler-24.03.0'
 # Convert the first page of PDF to an image
 def convert_pdf_to_image(pdf_path):
