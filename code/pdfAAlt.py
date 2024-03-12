@@ -15,14 +15,14 @@ class pdfAA:
         """
         contructor
         """
-        cities = ["MAKKAH","RIYADH","TAIF","JEDDAH","BURAYDAH","MEDINA","HOFHUF","DAMMAM","TABUK","ABHA","Jazan","Hail","Baha","Njran","Arar","Skaka"] # up to page 18 on 2003.pdf. Bottom of page says page 19. Why some all caps in the pdf??
-        months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
-        years = list(range(2002,2015)) # from 2002 - 2014
-        multicolumns = pd.MultiIndex.from_product([cities, years, months], names=['City', 'Year', 'Month'])
+        self.cities = ["MAKKAH","RIYADH","TAIF","JEDDAH","BURAYDAH","MEDINA","HOFHUF","DAMMAM","TABUK","ABHA","Jazan","Hail","Baha","Njran","Arar","Skaka"] # up to page 18 on 2003.pdf. Bottom of page says page 19. Why some all caps in the pdf??
+        self.months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
+        self.years = list(range(2002,2015)) # from 2002 - 2014
+        multicolumns = pd.MultiIndex.from_product([self.cities, self.years, self.months], names=['City', 'Year', 'Month'])
         #
-        rowIndices = ["General Index","Foodstuffs","Cereals and cereal products","Meat and Poultry","Fish and crustaceans","Milk and dairy products","Eggs","Cooking oil and fats","Fresh vegetables","Preserved and canned vegetables","Legumes and tubers","Fresh fruits","Preserved and canned fruits","Nuts, peanuts, seeds","Sugars and sugar preparations","Beverages","Foodstuffs, other","Tobacco","Out-of-home meals","Fabrics, clothing and footwear","Men's fabrics","Women's fabrics","Men's apparel","Women's apparel","Tailoring","Footwear","House and related items","Home repairs","Rents","Water supply expenditure","Fuel and Power","Home furniture","Furniture and carpet","Home furnishings","Small home appliances","kitchenhouse & tabletualis","Household small items","Home services","Basic home appliances","Medical care","Medical care expenses","Other medical expenses","Medicines","Transport and telecommunications","Private transport means","Operation of private transport means","Public transport fees","Telecommunications and related costs","Education and entertainment","Entertainment expenses","Education expenses","Entertainment devices","Other expenses and services","Personal hygiene and care items","Personal goods","Other expenses and services"] # taken from page 12 of 2003.pdf. Bottom of page says page 19.
+        self.rowIndices = ["General Index","Foodstuffs","Cereals and cereal products","Meat and Poultry","Fish and crustaceans","Milk and dairy products","Eggs","Cooking oil and fats","Fresh vegetables","Preserved and canned vegetables","Legumes and tubers","Fresh fruits","Preserved and canned fruits","Nuts, peanuts, seeds","Sugars and sugar preparations","Beverages","Foodstuffs, other","Tobacco","Out-of-home meals","Fabrics, clothing and footwear","Men's fabrics","Women's fabrics","Men's apparel","Women's apparel","Tailoring","Footwear","House and related items","Home repairs","Rents","Water supply expenditure","Fuel and Power","Home furniture","Furniture and carpet","Home furnishings","Small home appliances","kitchenhouse & tabletualis","Household small items","Home services","Basic home appliances","Medical care","Medical care expenses","Other medical expenses","Medicines","Transport and telecommunications","Private transport means","Operation of private transport means","Public transport fees","Telecommunications and related costs","Education and entertainment","Entertainment expenses","Education expenses","Entertainment devices","Other expenses and services","Personal hygiene and care items","Personal goods","Other expenses and services"] # taken from page 12 of 2003.pdf. Bottom of page says page 19.
         #
-        self.cityIndexDf = pd.DataFrame(index=rowIndices, columns=multicolumns) # three-level column heads. Store all info here.
+        self.cityIndexDf = pd.DataFrame(index=self.rowIndices, columns=multicolumns) # three-level column heads. Store all info here.
         self.currPdfPath = pdf_path
         self.currFileTextDf = pd.DataFrame( columns=['text']) # save each page's text into a df
         self.currFileTextDf.index.name = "page" # indexed by page number, column has the text value.
@@ -69,7 +69,7 @@ class pdfAA:
         Args:
             pageText (str): the entire page of text from pdf
         """
-        pattern = re.compile(r'Cities? Index for Groups And Subgroups', re.IGNORECASE)
+        pattern = re.compile(r'Citity Index', re.IGNORECASE)
         # return True / False, or return "city", "quarterAnnual", and different types if applicable, etc
         if pattern.search(pageText):
             return True
@@ -85,13 +85,13 @@ class pdfAA:
             city (int): 0 or 1, for the two different city values on a typial page. Not sure if some page might only have 1 city.
             return: [ city, year, month ] list
         """
-        # Regular expression pattern to find a standalone four-digit number that could be a year
-        year_pattern = re.compile(r'\b(20\d{2})\b')
-        year_match = year_pattern.search(pageText)
-
-        # The first integer found in the text that looks like a year
-        found_year = year_match.group(1) if year_match else "Unknown"
-
+        # let's find the first mention of any year
+        found_year = "Unknown"
+        for year in self.years:
+            if str(year) in pageText:
+                found_year = year
+                break  # Exit once the first year is found
+            
         # Search for city names directly in the text
         found_city = "Unknown"
         for city_name in self.cities:
@@ -125,17 +125,22 @@ class pdfAA:
         # return result
         # If the two above steps are successful, can save the values into 
         # self.cityIndexDf.loc[ resultFromPullRow[0], [resultFromPullCity] ] = resultFromPullRow[1]
-        pattern = re.compile(r'^(.+?)\s+(\d+(?:\.\d+)?)$')
-
-        match = pattern.search(rowText.strip())
-        if match:
-            expenditureGroup, value = match.groups()
-            # make sure they all float
-            value = float(value)
-            return [expenditureGroup, value]
-        else:
-            return None
+        # Try to match the row text with any of the predefined row indices (expenditure group names)
+        for rowIndex in self.rowIndices:
+            if rowText.startswith(rowIndex):
+                # After finding a matching expenditure group, extract the next float value in the text
+                # This regex looks for a sequence of digits possibly followed by a decimal point and more digits
+                value_pattern = re.compile(r'(\d+\.\d+|\d+)')
+                value_match = value_pattern.search(rowText[len(rowIndex):].strip())
+                
+                if value_match:
+                    # Convert the matched numeric string to a float
+                    value = float(value_match.group(0))
+                    return [rowIndex, value]
         
+        # If no matching expenditure group or value is found, return None
+        return None
+    
     def processPages(self):
         for index, row in self.currFileTextDf.iterrows():
             pageText = row['text']
@@ -161,9 +166,5 @@ thepdf = pdfAA(pdf_path)
 thepdf.importPdf()
 thepdf.processPages()
 # thepdf.importPdf(pdf_path)
-
-
-
-
 
 # %%
