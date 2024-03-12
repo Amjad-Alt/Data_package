@@ -3,6 +3,7 @@
 import pdfplumber
 import os
 import pandas as pd
+import re
 
 #%%
 class pdfAA:
@@ -68,8 +69,13 @@ class pdfAA:
         Args:
             pageText (str): the entire page of text from pdf
         """
+        pattern = re.compile(r'Cities? Index for Groups And Subgroups', re.IGNORECASE)
         # return True / False, or return "city", "quarterAnnual", and different types if applicable, etc
-        return True
+        if pattern.search(pageText):
+            return True
+        else:
+            return False
+
     
     def pullCityYearMonthValues(self, pageText, city=0):
         """
@@ -79,9 +85,33 @@ class pdfAA:
             city (int): 0 or 1, for the two different city values on a typial page. Not sure if some page might only have 1 city.
             return: [ city, year, month ] list
         """
-        # checks and pull
-        return [ "MAKKAH", 2003, "JAN" ] # just an example
-    
+        # Regular expression pattern to find a standalone four-digit number that could be a year
+        year_pattern = re.compile(r'\b(20\d{2})\b')
+        year_match = year_pattern.search(pageText)
+
+        # The first integer found in the text that looks like a year
+        found_year = year_match.group(1) if year_match else "Unknown"
+
+        # Search for city names directly in the text
+        found_city = "Unknown"
+        for city_name in self.cities:
+            if city_name.upper() in pageText.upper():  # Making the search case-insensitive
+                found_city = city_name
+                break  # Exit the loop once the first city name is found
+
+        # let's find the first mention of any month
+        found_month = "Unknown"
+        for month in self.months:
+            if month in pageText:
+                found_month = month
+                break  # Exit once the first month is found
+
+        if found_city != "Unknown" and found_year != "Unknown" and found_month != "Unknown":
+            return [found_city, int(found_year), found_month]
+        else:
+            # Handle the case where necessary information is not found
+            return ["Unknown", 0, "Unknown"]
+        
     def pullRowNameAndValues(self, rowText, city=0):
         """
         For each row in pageText, see if it corresponds to an expenditure group item. If so, pull the group name, and the first column value
@@ -90,13 +120,37 @@ class pdfAA:
             city (int): 0 or 1, for the two different city values on a typial page. Not sure if some page might only have 1 city.
             return: [ expenditureGroup, value ] list
         """
-        result = None
+        # result = None
         # result = [ "General Index", 101.60 ] # for example
-        return result
-    # If the two above steps are successful, can save the values into 
-    # self.cityIndexDf.loc[ resultFromPullRow[0], [resultFromPullCity] ] = resultFromPullRow[1]
-    
+        # return result
+        # If the two above steps are successful, can save the values into 
+        # self.cityIndexDf.loc[ resultFromPullRow[0], [resultFromPullCity] ] = resultFromPullRow[1]
+        pattern = re.compile(r'^(.+?)\s+(\d+(?:\.\d+)?)$')
+
+        match = pattern.search(rowText.strip())
+        if match:
+            expenditureGroup, value = match.groups()
+            # make sure they all float
+            value = float(value)
+            return [expenditureGroup, value]
+        else:
+            return None
         
+    def processPages(self):
+        for index, row in self.currFileTextDf.iterrows():
+            pageText = row['text']
+            if self.checkPageType(pageText):
+                cityYearMonth = self.pullCityYearMonthValues(pageText)
+                if cityYearMonth != ["Unknown", 0, "Unknown"]:  # this means a successful extraction
+                    # split the pageText into individual rows
+                    # pageText.split('\n') 
+                    for rowText in pageText.split('\n'):
+                        rowValues = self.pullRowNameAndValues(rowText)
+                        if rowValues:  # If rowValues is not None
+                            # update the DataFrame with the extracted values
+                            # rowValues = [expenditureGroup, value]
+                            # cityYearMonth = [city, year, month]
+                            self.cityIndexDf.loc[rowValues[0], (cityYearMonth[0], cityYearMonth[1], cityYearMonth[2])] = rowValues[1] 
         
 #%%
 # Instantiate
@@ -105,8 +159,11 @@ class pdfAA:
 pdf_path = "../data/2003_sample.pdf"
 thepdf = pdfAA(pdf_path)
 thepdf.importPdf()
+thepdf.processPages()
 # thepdf.importPdf(pdf_path)
 
 
 
 
+
+# %%
