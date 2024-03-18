@@ -137,7 +137,7 @@ class pdfAA:
         else:
             # If no month is found, return "Unknown"
             found_month = "Unknown"
-            return found_month
+            # return found_month
 
         if found_city != "Unknown" and found_year != "Unknown" and found_month != "Unknown":
             return [found_city, int(found_year), found_month]
@@ -160,7 +160,13 @@ class pdfAA:
         # self.cityIndexDf.loc[ resultFromPullRow[0], [resultFromPullCity] ] = resultFromPullRow[1]
         # Try to match the row text with any of the predefined row indices (expenditure group names)
         for rowIndex in self.rowIndices:
-            if rowText.startswith(rowIndex):
+            match = re.search(r'^\D*', rowText)
+            matched_string = match.group(0)
+            # match = re.search(rowIndex, re.search(r'^\D*', rowText) , re.IGNORECASE)
+            if rowIndex == matched_string.strip():
+                # Extract the first year found in the text
+                # found_year = match.group(0)
+            # if rowText.startswith(rowIndex):
                 # After finding a matching expenditure group, extract the next float value in the text
                 # This regex looks for a sequence of digits possibly followed by a decimal point and more digits
                 value_pattern = re.compile(r'(\d+\.\d+|\d+)')
@@ -170,7 +176,7 @@ class pdfAA:
                 if value_match:
                     # Convert the matched numeric string to a float
                     value = float(value_match.group(0))
-                    return [rowIndex, value]
+                    return [rowIndex, value]           
 
         # If no matching expenditure group or value is found, return None
         return None
