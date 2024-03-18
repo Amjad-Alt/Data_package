@@ -3,6 +3,7 @@
 import os
 import glob
 import pandas as pd
+import re
 # %%
 
 
@@ -19,8 +20,8 @@ class excelAAlt:
         """
         self.cities = [
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
-            "HOFHUF", "DAMMAM", "TABUK", "ABHA", "Jazan", "Hail", "Baha",
-            "Njran", "Arar", "Skaka"
+            "HOFHUF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+            "NJRAN", "ARAR", "SKAKA"
         ]
         self.months = [
             "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
@@ -34,38 +35,115 @@ class excelAAlt:
             names=['City', 'Year', 'Month']
         )
 
-        # Initialize rowIndices as an empty list
-        self.rowIndices = []
+        self.rowIndices = ['General Index',
+                           'FOOD AND BEVERAGES',
+                           'FOOD',
+                           'BEVERAGES',
+                           'TOBACCO',
+                           'CLOTHING AND FOOTWEAR',
+                           'CLOTHING',
+                           'FOOTWEAR',
+                           'HOUSING, WATER, ELECTRI-CITY ,GAS AND OTHER FUELS',
+                           'RENTALS FOR HOUSING',
+                           'MAITENANCE OF THE DEWELLING',
+                           'WATER SUPPLY & OTHER SERVICES',
+                           'ELECTRICITY, GAS AND OTHER FUELS',
+                           'FURNISHINGS, HOUSEHOLD EQUIPMENT AND MAINTENANCE',
+                           'FURNITURE & CARPETS',
+                           'HOUSEHOLD TEXTILES',
+                           'HOUSEHOLD APPLIANCES',
+                           'HOUSEHOLD UTENSILS',
+                           'TOOLS FOR HOUSE & GARDEN',
+                           'GOODS FOR HOUSEHOLD MAINTENANCE',
+                           'HEALTH',
+                           'MEDICAL PRODUCTS & EQUIPMENT',
+                           'OUTPATIENT SERVICES',
+                           'HOSPITAL SERVICES',
+                           'TRANSPORT',
+                           'PURCHASE OF VEHICLES',
+                           'OPERATION OF TRANSPORT EQUIPMENT',
+                           'TRANSPORT SERVICES',
+                           'COMMUNICATION',
+                           'POSTAL SERVICES',
+                           'TELEPHONE AND TELEFAX EQUIPMENT',
+                           'TELEPHONE AND TELEFAX SERVICES',
+                           'RECREATION AND CULTURE',
+                           'AUDIO, PHOTO & INFO. EQUIPMENT',
+                           'OTHER RECREATION & CULTURE GOODS',
+                           'OTHER RECREATIONAL GOODS',
+                           'RECREATIONAL & CULTURAL SERVICES',
+                           'NEWSPAPERS, BOOKS & STATIONERY',
+                           'PACKAGE HOLIDAYS',
+                           'EDUCATION',
+                           'PRE-PRIMARY & PRIMARY EDUCATION',
+                           'SECONDARY&INTERMEDIATE EDUCATION',
+                           'POST-SECONDARY EDUCATION',
+                           'TERTIARY EDUCATION',
+                           'RESTAURANTS AND HOTELS',
+                           'CATERING SERVICE',
+                           'ACCOMMODATION SERVICES',
+                           'MISCELLANEOUS GOODS AND SERVICES',
+                           'PERSONAL CARE',
+                           'PERSONAL EFFECTS N.E.C.',
+                           'SOCIAL PROTECTION',
+                           'INSURANCE',
+                           'FINANCIAL SERVICES N.E C.',
+                           'OTHER SERVICES N.E.C.'
+                           ]
 
         # Setup DataFrame with multi-level columns and no initial rows
         self.cityIndexDf = pd.DataFrame(columns=multicolumns)
         self.cityIndexDf.index.name = "Category"  # Naming the index for clarity
 
-        # Variables for Excel file processing
-        self.currExcelPath = excel_path  # Current Excel file path
-        self.data = pd.DataFrame()
+    def find_year_months_cities(self, df):
+        found_year = None
+        found_months = []
+        found_cities = []
+
+        combined_text = " ".join(df.iloc[:10].astype(str).values.flatten())
+        year_re = re.compile(r'(2015|2016|2017)')
+        year_match = year_re.search(combined_text)
+        if year_match:
+            found_year = int(year_match.group())
+
+        for month in self.months:
+            if month.lower() in combined_text.lower():
+                found_months.append(month)
+                if len(found_months) == 2:
+                    break
+
+        for city in self.cities:
+            if city.lower() in combined_text.lower():
+                found_cities.append(city)
+                if len(found_cities) == 2:
+                    break
+
+        if found_year and len(found_months) == 2 and len(found_cities) == 2:
+            return (found_year, found_months, found_cities)
+        else:
+            return None
+
+    def extract_info_and_update(self, df, sheet_name):
+        # Extract year, months, and cities
+        info = self.find_year_months_cities(df)
+        if info:
+            year, months, cities = info
+            # Instead of just printing, also call extract_and_assign_values
+            self.extract_and_assign_values(
+                df, year, months, cities, self.rowIndices)
+        else:
+            print(f"Could not extract info for '{sheet_name}'.")
 
     def process_sheet_by_name(self, file_path, sheet_name):
-        """
-        Processes a single sheet by its name from the given Excel file.
-        """
-        # Ensure the file_path is correctly used to refer to the Excel file
-        print(f"Processing sheet '{sheet_name}' from file '{file_path}'")
         try:
             df = pd.read_excel(file_path, sheet_name=sheet_name)
-            df.dropna(axis=0, how='all', inplace=True)
-            df.dropna(axis=1, how='all', inplace=True)
-            # Further processing steps can be added here
+            self.extract_info_and_update(df, sheet_name)
         except Exception as e:
             print(
                 f"Error processing sheet '{sheet_name}' in file '{file_path}': {e}")
 
     def process_files_in_directory(self, directory_path, file_pattern="*.xls*"):
-        """
-        Iterates over Excel files in a directory, processing sheets with '4' in their name.
-        """
         for file_path in glob.glob(os.path.join(directory_path, file_pattern)):
-            print(f"Processing file: {file_path}")
             try:
                 sheet_names = pd.ExcelFile(file_path).sheet_names
                 for sheet_name in sheet_names:
@@ -74,11 +152,41 @@ class excelAAlt:
             except Exception as e:
                 print(f"Error processing file '{file_path}': {e}")
 
+    def extract_and_assign_values(self, df, year, months, cities, rowIndices):
+        start_row, start_col = self.find_starting_point(df, rowIndices)
+        if start_row is None or start_col is None:
+            return
+
+        # Iterate through rowIndices and assign values to cityIndexDf
+        for offset, rowIndex in enumerate(rowIndices):
+            for city_index, city in enumerate(cities):
+                for month_index, month in enumerate(months):
+                    # Calculate the cell position; skipping every third value as required
+                    if month_index == 2:  # Assuming the month index to skip is 2
+                        continue
+                    # Adjusted cell_pos to account for correct cell
+                    cell_pos = city_index * 2 + month_index + 1
+                    # Adjusted to use iloc for direct cell access
+                    cell_value = df.iloc[start_row, start_col + cell_pos]
+
+                    # Assign the extracted value to the DataFrame if it's a float
+                    if isinstance(cell_value, float):
+                        self.cityIndexDf.loc[(
+                            city, year, month), rowIndex] = cell_value
+                        print(
+                            f"Assigned {cell_value} to {city}, {year}, {month}, {rowIndex}")
+
+    def find_starting_point(self, df, rowIndices):
+        for row in range(len(df)):
+            for col in range(len(df.columns)):
+                cell_value = str(df.iat[row, col])
+                if any(rowIndex in cell_value for rowIndex in rowIndices):
+                    return row, col
+        return None, None
+
 
 # %%
-file_path = '../data/2016/'
+file_path = '../data/2015'
 extractor = excelAAlt()
 extractor.process_files_in_directory(file_path)
-
-
 # %%
