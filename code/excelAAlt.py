@@ -1,12 +1,11 @@
 
-# %%
+#%%
 import os
 import glob
 import pandas as pd
 import re
-# %%
 
-
+#%%
 class excelAAlt:
     """
     A class to extract data from Excel files (.xls and .xlsx), focusing on
@@ -22,7 +21,7 @@ class excelAAlt:
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
             "HOFHUF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
             "NJRAN", "ARAR", "SKAKA"
-        ]
+        ] 
         self.months = [
             "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
@@ -96,6 +95,9 @@ class excelAAlt:
         self.cityIndexDf.index.name = "Category"  # Naming the index for clarity
 
     def find_year_months_cities(self, df):
+        """input: all the data
+        loop and find cities, months and year
+        output: two list of two index and a number"""
         found_year = None
         found_months = []
         found_cities = []
@@ -122,71 +124,60 @@ class excelAAlt:
             return (found_year, found_months, found_cities)
         else:
             return None
+                   
+    def extract_values(self, df, rowIndices):
+        """ get the values:
+        input: rowIndices
+        then loop through each one
+        then when you find have a list of the values based on position
+        output: list of 4 indexs"""
+        
+        # Iterate through each rowIndex to find its starting position
+        for rowIndex in rowIndices:
+            for row in range(len(df)):
+                if rowIndex in df.iloc[row, :].values:
+                    # Found the row where rowIndex is located
+                    start_col = df.columns.get_loc(df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0]) - 1
+                    values_to_assign = [
+                        df.iloc[row, start_col],  # Value for city[1], month[1]
+                        df.iloc[row, start_col - 1],  # Value for city[1], month[0]
+                        df.iloc[row, start_col - 4],  # Value for city[0], month[1] (skipping two cell)
+                        df.iloc[row, start_col - 5],  # Value for city[0], month[0]
+                    ]
 
-    def extract_info_and_update(self, df, sheet_name):
-        # Extract year, months, and cities
-        info = self.find_year_months_cities(df)
-        if info:
-            year, months, cities = info
-            # Instead of just printing, also call extract_and_assign_values
-            self.extract_and_assign_values(
-                df, year, months, cities, self.rowIndices)
-        else:
-            print(f"Could not extract info for '{sheet_name}'.")
-
-    def process_sheet_by_name(self, file_path, sheet_name):
-        try:
-            df = pd.read_excel(file_path, sheet_name=sheet_name)
-            self.extract_info_and_update(df, sheet_name)
-        except Exception as e:
-            print(
-                f"Error processing sheet '{sheet_name}' in file '{file_path}': {e}")
-
-    def process_files_in_directory(self, directory_path, file_pattern="*.xls*"):
+    
+    def extract_info(self, values_to_assign, found_year, found_months, found_cities):
+        """ input value list== 4, cities == 2, months ==2, year ==1
+        do:
+        [found_cities[0], found_year, found_months[0]] = values_to_assign[0],
+        [found_cities[0], found_year, found_months[1]] = values_to_assign[1],
+        [found_cities[1], found_year, found_months[0]] = values_to_assign[2],
+        [found_cities[1], found_year,found_months[1]] = values_to_assign[3]"""
+        
+        self.cityIndexDf.loc[(found_cities[0], found_year, found_months[0])] = values_to_assign[0]
+        self.cityIndexDf.loc[(found_cities[0], found_year, found_months[1])] = values_to_assign[1]
+        self.cityIndexDf.loc[(found_cities[1], found_year, found_months[0])] = values_to_assign[2]
+        self.cityIndexDf.loc[(found_cities[1], found_year, found_months[1])] = values_to_assign[3]
+    
+    def processPages(self, directory_path, file_pattern="*.xls*"):
         for file_path in glob.glob(os.path.join(directory_path, file_pattern)):
-            try:
-                sheet_names = pd.ExcelFile(file_path).sheet_names
-                for sheet_name in sheet_names:
-                    if '4' in sheet_name:
-                        self.process_sheet_by_name(file_path, sheet_name)
-            except Exception as e:
-                print(f"Error processing file '{file_path}': {e}")
+            sheet_names = pd.ExcelFile(file_path).sheet_names
+            for sheet_name in sheet_names:
+                if '4' in sheet_name:
+                    df = pd.read_excel(file_path, sheet_name=sheet_name)
+                    cityYearMonth = self.find_year_months_cities(df)
+                    if cityYearMonth:
+                        found_year, found_months, found_cities = cityYearMonth
+                        for rowIndex in self.rowIndices:
+                            values_to_assign = self.extract_values(df, rowIndex)
+                            if values_to_assign:
+                                self.extract_info(values_to_assign, found_year, found_months, found_cities)
 
-    def extract_and_assign_values(self, df, year, months, cities, rowIndices):
-        start_row, start_col = self.find_starting_point(df, rowIndices)
-        if start_row is None or start_col is None:
-            return
-
-        # Iterate through rowIndices and assign values to cityIndexDf
-        for offset, rowIndex in enumerate(rowIndices):
-            for city_index, city in enumerate(cities):
-                for month_index, month in enumerate(months):
-                    # Calculate the cell position; skipping every third value as required
-                    if month_index == 2:  # Assuming the month index to skip is 2
-                        continue
-                    # Adjusted cell_pos to account for correct cell
-                    cell_pos = city_index * 2 + month_index + 1
-                    # Adjusted to use iloc for direct cell access
-                    cell_value = df.iloc[start_row, start_col + cell_pos]
-
-                    # Assign the extracted value to the DataFrame if it's a float
-                    if isinstance(cell_value, float):
-                        self.cityIndexDf.loc[(
-                            city, year, month), rowIndex] = cell_value
-                        print(
-                            f"Assigned {cell_value} to {city}, {year}, {month}, {rowIndex}")
-
-    def find_starting_point(self, df, rowIndices):
-        for row in range(len(df)):
-            for col in range(len(df.columns)):
-                cell_value = str(df.iat[row, col])
-                if any(rowIndex in cell_value for rowIndex in rowIndices):
-                    return row, col
-        return None, None
 
 
 # %%
-file_path = '../data/2015'
+file_path = '../data/2016'
 extractor = excelAAlt()
-extractor.process_files_in_directory(file_path)
+extractor.processPages(file_path)  # %%
+
 # %%

@@ -1,0 +1,23 @@
+2002-2011 (pdfAAlt)
+- fix the month names
+- Foodstuffs is taking the wrong value
+- (Foodstuffs, other) (Medical care expenses) is NaN
+
+
+2012-2014 (OCR)
+- find a way to get the data
+- check the names of rows
+
+2015-2017 (excelAAlt)
+- how to link (value)with the dataframe
+
+2018-2019
+
+2020-2023 (xlsxAAlt)
+- find a way to stack all years "make the path as a list" then concat using the same column name and row
+- check with prof. about having already plannd data then just add the numbers, or only staking
+
+GENERAL
+- all cities have the same spelling
+- all months have the same spelling
+

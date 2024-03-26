@@ -97,3 +97,5 @@ names =['General Index',
 'INSURANCE',''
 'FINANCIAL SERVICES N.E C.',
 'OTHER SERVICES N.E'] # check the names in the rows coz not all of them in the same line
+
+# %%
