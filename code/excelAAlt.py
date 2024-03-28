@@ -1,11 +1,13 @@
 
-#%%
+# %%
 import os
 import glob
 import pandas as pd
 import re
 
-#%%
+# %%
+
+
 class excelAAlt:
     """
     A class to extract data from Excel files (.xls and .xlsx), focusing on
@@ -21,7 +23,7 @@ class excelAAlt:
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
             "HOFHUF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
             "NJRAN", "ARAR", "SKAKA"
-        ] 
+        ]
         self.months = [
             "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
@@ -124,41 +126,82 @@ class excelAAlt:
             return (found_year, found_months, found_cities)
         else:
             return None
-                   
+
     def extract_values(self, df, rowIndices):
-        """ get the values:
-        input: rowIndices
-        then loop through each one
-        then when you find have a list of the values based on position
-        output: list of 4 indexs"""
-        
-        # Iterate through each rowIndex to find its starting position
+        # if isinstance(rowIndices, str):
+        #     # Ensure rowIndices is a list if it's a single string
+        #     rowIndices = [rowIndices]
+
+        # all_values = []  # List to collect the sets of values for each rowIndex
+
+        # # Iterate through each rowIndex
+        # for rowIndex in rowIndices:
+        #     found = False
+        #     # Search through the DataFrame for the rowIndex
+        #     for row in range(len(df)):
+        #         if rowIndex in df.iloc[row, :].astype(str).values:
+        #             found = True
+        #         # Determine the starting column index for values extraction based on rowIndex presence
+        #         start_col = df.columns.get_loc(df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0])
+        #         # Extract and append the values assuming their relative positions to start_col
+        #         values_for_current_rowIndex = [
+        #             df.iloc[row, start_col],
+        #             df.iloc[row,start_col - 1],
+        #             df.iloc[row, start_col - 4],
+        #             df.iloc[row, start_col - 5],
+        #         ]
+        #         all_values.append(values_for_current_rowIndex)
+
+        #             # Break the inner loop once the rowIndex is found and values extracted
+        #         break
+
+        #     # If rowIndex wasn't found in the DataFrame, append a placeholder
+        #     if not found:
+        #         all_values.append([None, None, None, None])
+
+        # return all_values
+        if isinstance(rowIndices, str):
+            #     # Ensure rowIndices is a list if it's a single string
+            rowIndices = [rowIndices]
         for rowIndex in rowIndices:
             for row in range(len(df)):
                 if rowIndex in df.iloc[row, :].values:
-                    # Found the row where rowIndex is located
-                    start_col = df.columns.get_loc(df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0]) - 1
-                    values_to_assign = [
-                        df.iloc[row, start_col],  # Value for city[1], month[1]
-                        df.iloc[row, start_col - 1],  # Value for city[1], month[0]
-                        df.iloc[row, start_col - 4],  # Value for city[0], month[1] (skipping two cell)
-                        df.iloc[row, start_col - 5],  # Value for city[0], month[0]
-                    ]
+                    if rowIndex in df.iloc[row, :].values:
+                        # Found the row where rowIndex is located
+                        start_col = df.columns.get_loc(
+                            df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0]) - 1
+                        values_to_assign = [
+                            # Value for city[1], month[1]
+                            df.iloc[row, start_col],
+                            # Value for city[1], month[0]
+                            df.iloc[row, start_col - 1],
+                            # Value for city[0], month[1] (skipping two cell)
+                            df.iloc[row, start_col - 4],
+                            # Value for city[0], month[0]
+                            df.iloc[row, start_col - 5],
+                        ]
+                        if values_to_assign:
+                            return (rowIndex, values_to_assign)
 
-    
-    def extract_info(self, values_to_assign, found_year, found_months, found_cities):
+    def extract_info(self, values_to_assign, rowIndex, found_year, found_months, found_cities):
         """ input value list== 4, cities == 2, months ==2, year ==1
         do:
         [found_cities[0], found_year, found_months[0]] = values_to_assign[0],
         [found_cities[0], found_year, found_months[1]] = values_to_assign[1],
         [found_cities[1], found_year, found_months[0]] = values_to_assign[2],
-        [found_cities[1], found_year,found_months[1]] = values_to_assign[3]"""
-        
-        self.cityIndexDf.loc[(found_cities[0], found_year, found_months[0])] = values_to_assign[0]
-        self.cityIndexDf.loc[(found_cities[0], found_year, found_months[1])] = values_to_assign[1]
-        self.cityIndexDf.loc[(found_cities[1], found_year, found_months[0])] = values_to_assign[2]
-        self.cityIndexDf.loc[(found_cities[1], found_year, found_months[1])] = values_to_assign[3]
-    
+        [found_cities[1], found_year,found_months[1]] = values_to_assign[3]
+        self.cityIndexDf.loc[rowValues[0], (cityYearMonth[0], cityYearMonth[1], cityYearMonth[2])] = rowValues[1]"""
+        one = [found_cities[0], found_year,
+               found_months[0], rowIndex, values_to_assign[3]]
+        two = [found_cities[0], found_year,
+               found_months[1], rowIndex, values_to_assign[2]]
+        three = [found_cities[1], found_year,
+                 found_months[0], rowIndex, values_to_assign[1]]
+        four = [found_cities[1], found_year,
+                found_months[1], rowIndex, values_to_assign[0]]
+        if one:
+            return (one, two, three, four)
+
     def processPages(self, directory_path, file_pattern="*.xls*"):
         for file_path in glob.glob(os.path.join(directory_path, file_pattern)):
             sheet_names = pd.ExcelFile(file_path).sheet_names
@@ -169,10 +212,19 @@ class excelAAlt:
                     if cityYearMonth:
                         found_year, found_months, found_cities = cityYearMonth
                         for rowIndex in self.rowIndices:
-                            values_to_assign = self.extract_values(df, rowIndex)
+                            values_to_assign = self.extract_values(
+                                df, rowIndex)
                             if values_to_assign:
-                                self.extract_info(values_to_assign, found_year, found_months, found_cities)
-
+                                rowIndex, values_to_assign = values_to_assign
+                            if values_to_assign:
+                                full_rows = self.extract_info(
+                                    values_to_assign, rowIndex, found_year, found_months, found_cities)
+                                if full_rows:
+                                    for full_row in full_rows: 
+                                        # update the DataFrame with the extracted values
+                                        # full_rows= [city, year, month, rowIndex, values] *4
+                                        self.cityIndexDf.loc[full_row[0],
+                                            full_row[1], full_row[2], full_row[3]] = full_row[4]
 
 
 # %%
