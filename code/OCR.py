@@ -120,7 +120,7 @@ class OCRAAlt:
         """
         self.cities = [
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
-            "HOFHUF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+            "HOFHUF", "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
             "NJRAN", "ARAR", "SKAKA"
         ]
         self.months = [
@@ -210,25 +210,37 @@ class OCRAAlt:
         # Perform OCR on each image and collect texts from images containing "Table 4",
         # but skip every other image containing "Table 4" starting from the first one found.
         all_text = []
-        found_table_4 = False  # Flag to indicate if "Table 4" has been found
-        skip_next = False  # Flag to skip the next occurrence
+        # found_table_4 = False  # Flag to indicate if "Table 4" has been found
+        count_table_4 = 0  # Counter for images with "Table 4"
 
         for img in images:
             text = pytesseract.image_to_string(img, lang='eng')
-            if 'Table 4' in text:
-                if found_table_4 and skip_next:
-                    # If "Table 4" was found before and we're skipping this one, reset skip_next
-                    skip_next = False
-                    continue  # Skip this image
-                if found_table_4 and not skip_next:
-                    # If "Table 4" was found before and this one is not being skipped,
-                    # add its text and set skip_next for the next occurrence
-                    all_text.append(text)
-                    skip_next = True
-                if not found_table_4:
-                    # If this is the first time "Table 4" is found, skip it and mark subsequent finds for addition
-                    found_table_4 = True
-                    skip_next = True
+            # if 'Table 4' in text and 'JAN DEC' not in text:
+            if 'Table 4' in text and not any( element in text for element in ['JAN DEC','MAR FEB','MAY APR','JUL JUN','SEP AUG','NOV OCT']):
+                # count_table_4 += 1  # Increment counter each time "Table 4" is found
+                # Calculate the current set (group of 8) this image belongs to
+                # current_set = (count_table_4 - 1) // 8
+                # if found_table_4 and skip_next:
+                #     # If "Table 4" was found before and we're skipping this one, reset skip_next
+                #     skip_next = False
+                #     continue  # Skip this image
+                # if found_table_4 and not skip_next:
+                #     # If "Table 4" was found before and this one is not being skipped,
+                #     # add its text and set skip_next for the next occurrence
+                #     all_text.append(text)
+                #     skip_next = True
+                # if not found_table_4:
+                #     # If this is the first time "Table 4" is found, skip it and mark subsequent finds for addition
+                #     found_table_4 = True
+                #     skip_next = True
+                # Determine if this image is in a set to be processed or skipped
+                # if current_set % 2 == 0:
+                # Even sets (0-based) are skipped, so do nothing here
+                # continue
+                # else:
+                # Odd sets are processed
+                # all_text.append(text)
+                all_text.append(text)
             # If "Table 4" is not found in the text, no action is required
         return all_text
 
@@ -296,10 +308,10 @@ class OCRAAlt:
                     # Use regex to extract all numbers from the line
                     numbers = re.findall(r'-?\d+\.\d+', line)
                     if numbers:
-                        data[rowIndex] = ', '.join(numbers)
+                        data[rowIndex] = [float(num) for num in numbers]
         return data
 
-    def mach(self, values, rowIndex, found_year, found_months, found_cities):
+    def mach(self,  values_to_assign, rowIndex, found_year, found_months, found_cities):
         """mach:
                 one = [found_cities[0], found_year,
                found_months[0], rowIndex, values_to_assign[3]]
@@ -311,17 +323,17 @@ class OCRAAlt:
                 found_months[1], rowIndex, values_to_assign[0]]
             output: return (one, two, three, four)"""
         data = []
-        for rowIndex, numbers in values.items():
-            if len(found_cities) == 2 and len(found_months) == 2:
-                # Assuming values are in a specific order; adjust as necessary
-                data.append([found_cities[0], found_year,
-                            found_months[0], rowIndex, numbers[4]])
-                data.append([found_cities[0], found_year,
-                            found_months[1], rowIndex, numbers[3]])
-                data.append([found_cities[1], found_year,
-                            found_months[0], rowIndex, numbers[1]])
-                data.append([found_cities[1], found_year,
-                            found_months[1], rowIndex, numbers[0]])
+        numbers = values_to_assign.copy()
+        if len(found_cities) == 2 and len(found_months) == 2:
+            # values are in a specific order
+            data.append([found_cities[0], found_year,
+                        found_months[1], rowIndex, numbers[4]])
+            data.append([found_cities[0], found_year,
+                        found_months[0], rowIndex, numbers[3]])
+            data.append([found_cities[1], found_year,
+                        found_months[1], rowIndex, numbers[1]])
+            data.append([found_cities[1], found_year,
+                        found_months[0], rowIndex, numbers[0]])
         return data
 
     def process(self, pdf_path):
@@ -334,17 +346,20 @@ class OCRAAlt:
             found_year, found_months, found_cities = self.year_months_cities(
                 text)
             values_to_assign = self.values(text, self.rowIndices)
-            matched_data = self.mach(
-                values_to_assign, rowIndex, found_year, found_months, found_cities)
+            # Iterate through each rowIndex and its associated values
+            for rowIndex, values in values_to_assign.items():
+                matched_data = self.mach(
+                    values, rowIndex, found_year, found_months, found_cities)
 
-            for data in matched_data:
-                city, year, month, rowIndex, value = data
-                # 'city', 'year', and 'month' are columns in DataFrame
-                self.cityIndexDf.loc[rowIndex, (city, year, month)] = value
+                for data in matched_data:
+                    city, year, month, rowIndex, value = data
+                    # 'city', 'year', and 'month' are columns in DataFrame
+                    self.cityIndexDf.loc[rowIndex, (city, year, month)] = value
 
 
 # %%
-pdf_path = '../data/2012.pdf'
+pdf_path = '../data/2012_sample.pdf'
+# pdf_path = '../data/2012.pdf'
 ocr_alt = OCRAAlt()
 ocr_alt.process(pdf_path)
 # %%
