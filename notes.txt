@@ -1,15 +1,15 @@
 2002-2011 (pdfAAlt)
-- fix the month names
-- Foodstuffs is taking the wrong value
-- (Foodstuffs, other) (Medical care expenses) is NaN
+- need the other column 
+- then concat
 
-
-2012-2014 (OCR)
-- find a way to get the data
-- check the names of rows
+2012-2014 (OCRAAlt)
+-Fix the ALHOFOF thing and standerize it across all data
+-link the value to the df location
+-Have to check if got the pages numbers right
 
 2015-2017 (excelAAlt)
 - how to link (value)with the dataframe
+- why all '4-(4)' are not read?
 
 2018-2019
 
