@@ -324,6 +324,10 @@ class OCRAAlt:
             output: return (one, two, three, four)"""
         data = []
         numbers = values_to_assign.copy()
+        if len(numbers) < 6:
+            print(f"Row not read properly. Cities: {found_cities}, RowIndex: {rowIndex}, Year: {found_year}, Months: {found_months}")
+            return data  
+
         if len(found_cities) == 2 and len(found_months) == 2:
             # values are in a specific order
             data.append([found_cities[0], found_year,
@@ -358,7 +362,7 @@ class OCRAAlt:
 
 
 # %%
-pdf_path = '../data/2012_sample.pdf'
+pdf_path = '../data/2012.pdf'
 # pdf_path = '../data/2012.pdf'
 ocr_alt = OCRAAlt()
 ocr_alt.process(pdf_path)
