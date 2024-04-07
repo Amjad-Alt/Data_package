@@ -21,7 +21,7 @@ class excelAAlt:
         """
         self.cities = [
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
-            "HOFHUF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+            "HOFHUF", "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
             "NJRAN", "ARAR", "SKAKA"
         ]
         self.months = [
@@ -104,8 +104,8 @@ class excelAAlt:
         found_months = []
         found_cities = []
 
-        combined_text = " ".join(df.iloc[:10].astype(str).values.flatten())
-        year_re = re.compile(r'(2015|2016|2017)')
+        combined_text = " ".join(df.iloc[:16].astype(str).values.flatten())
+        year_re = re.compile(r'(2015|2016|2017|2018|2019)')
         year_match = year_re.search(combined_text)
         if year_match:
             found_year = int(year_match.group())
@@ -143,7 +143,7 @@ class excelAAlt:
         #             found = True
         #         # Determine the starting column index for values extraction based on rowIndex presence
         #         start_col = df.columns.get_loc(df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0])
-        #         # Extract and append the values assuming their relative positions to start_col
+        #         # Extract and append the values  their relative positions to start_col
         #         values_for_current_rowIndex = [
         #             df.iloc[row, start_col],
         #             df.iloc[row,start_col - 1],
@@ -183,18 +183,54 @@ class excelAAlt:
                         if values_to_assign:
                             return (rowIndex, values_to_assign)
 
+    def extract_values_cleaned(self, df, rowIndices):
+        """
+        Iterates over rows in the provided DataFrame segment (df), cleans NaN values, and
+        collects remaining numbers along with their row indices.
+        """
+        # Initialize numbers as an empty list in case no rowIndex matches are found
+        numbers = []
+
+        # Ensure rowIndices is a list even if a single string is provided
+        if isinstance(rowIndices, str):
+            rowIndices = [rowIndices]
+
+        for rowIndex in rowIndices:
+            for index, row in df.iterrows():
+                # Check if rowIndex (category or tag) is in any cell of the row
+                if rowIndex in row.values:
+                    # Drop NaNs and keep numeric values
+                    temp_numbers = row.dropna().tolist()
+                    temp_numbers = [
+                        x for x in temp_numbers if isinstance(x, (int, float))]
+                    # Update numbers with the last found set of numeric values
+                    numbers = temp_numbers
+
+        return numbers
+
     def extract_info(self, values_to_assign, rowIndex, found_year, found_months, found_cities):
-        """ input value list== 4, cities == 2, months ==2, year ==1
+        """ input value list== 4, cities == 2, months ==2, year ==1, rowIndex ==1
         do:
-        [found_cities[0], found_year, found_months[0]] = values_to_assign[0],
-        [found_cities[0], found_year, found_months[1]] = values_to_assign[1],
-        [found_cities[1], found_year, found_months[0]] = values_to_assign[2],
-        [found_cities[1], found_year,found_months[1]] = values_to_assign[3]
         self.cityIndexDf.loc[rowValues[0], (cityYearMonth[0], cityYearMonth[1], cityYearMonth[2])] = rowValues[1]"""
         one = [found_cities[0], found_year,
                found_months[0], rowIndex, values_to_assign[3]]
         two = [found_cities[0], found_year,
                found_months[1], rowIndex, values_to_assign[2]]
+        three = [found_cities[1], found_year,
+                 found_months[0], rowIndex, values_to_assign[1]]
+        four = [found_cities[1], found_year,
+                found_months[1], rowIndex, values_to_assign[0]]
+        if one:
+            return (one, two, three, four)
+
+    def extract_info2(self, values_to_assign, rowIndex, found_year, found_months, found_cities):
+        """ input value list== 4, cities == 2, months ==2, year ==1, rowIndex ==1
+        do:
+        self.cityIndexDf.loc[rowValues[0], (cityYearMonth[0], cityYearMonth[1], cityYearMonth[2])] = rowValues[1]"""
+        one = [found_cities[0], found_year,
+               found_months[0], rowIndex, values_to_assign[4]]
+        two = [found_cities[0], found_year,
+               found_months[1], rowIndex, values_to_assign[3]]
         three = [found_cities[1], found_year,
                  found_months[0], rowIndex, values_to_assign[1]]
         four = [found_cities[1], found_year,
@@ -220,16 +256,64 @@ class excelAAlt:
                                 full_rows = self.extract_info(
                                     values_to_assign, rowIndex, found_year, found_months, found_cities)
                                 if full_rows:
-                                    for full_row in full_rows: 
+                                    for full_row in full_rows:
                                         # update the DataFrame with the extracted values
                                         # full_rows= [city, year, month, rowIndex, values] *4
-                                        self.cityIndexDf.loc[full_row[0],
-                                            full_row[1], full_row[2], full_row[3]] = full_row[4]
+                                        self.cityIndexDf.loc[full_row[3],
+                                                             (full_row[0], full_row[1], full_row[2])] = full_row[4]
+
+    def processPages2(self, directory_path, file_pattern="*.xls*"):
+        for file_path in glob.glob(os.path.join(directory_path, file_pattern)):
+            # Attempt to open the sheet named '4'. Assuming there's only one such sheet per file.
+            try:
+                sheet_df = pd.read_excel(file_path, sheet_name='جدول 4')
+            except ValueError:
+                print(
+                    f"Sheet '4' not found in {file_path}. Skipping this file.")
+                continue
+
+                # Process the sheet in segments of 43 rows, treating each as a separate page.
+            # Identify segments based on "Table 4" marker
+            segment_boundaries = []
+            for index, row in sheet_df.iterrows():
+                if any("Table 4" in str(cell) for cell in row):
+                    segment_boundaries.append(index)
+
+            # Include the end of the DataFrame as the last boundary
+            segment_boundaries.append(sheet_df.shape[0])
+
+            # Process each segment
+            for i in range(len(segment_boundaries)-1):
+                start_row = segment_boundaries[i]
+                end_row = segment_boundaries[i+1]
+                page_df = sheet_df.iloc[start_row:end_row]
+
+                # Extract Cities and Months for the current "page"
+                cityYearMonth = self.find_year_months_cities(page_df)
+                found_year, found_months, found_cities = cityYearMonth
+                # Extract and organize data for predefined categories within the current segment.
+                for rowIndex in self.rowIndices:
+                    values_to_assign = self.extract_values_cleaned(
+                        page_df, rowIndex)
+                    if values_to_assign:
+                        full_rows = self.extract_info2(
+                            values_to_assign, rowIndex, found_year, found_months, found_cities)
+                        for full_row in full_rows:
+                            # Update the DataFrame with the extracted values for the current segment
+                            self.cityIndexDf.loc[full_row[3],
+                                                 (full_row[0], full_row[1], full_row[2])] = full_row[4]
 
 
 # %%
-file_path = '../data/2016'
 extractor = excelAAlt()
-extractor.processPages(file_path)  # %%
+
+# %%
+# file_path = '../data/2016'
+# extractor.processPages(file_path)  # %%
+
+# %%
+file_path2 = '../data/2018'
+extractor.processPages2(file_path2)  # %%
+
 
 # %%
