@@ -21,7 +21,7 @@ class excelAAlt:
         """
         self.cities = [
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
-            "HOFHUF", "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+            "HOFHUF", "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "JAZZAN", "HAIL", "BAHA",
             "NJRAN", "ARAR", "SKAKA"
         ]
         self.months = [
@@ -188,25 +188,35 @@ class excelAAlt:
         Iterates over rows in the provided DataFrame segment (df), cleans NaN values, and
         collects remaining numbers along with their row indices.
         """
-        # Initialize numbers as an empty list in case no rowIndex matches are found
-        numbers = []
+        # results = {}  # Dictionary to hold results for each rowIndex
 
-        # Ensure rowIndices is a list even if a single string is provided
+        # if isinstance(rowIndices, str):
+        #     rowIndices = [rowIndices]
+
+        # for rowIndex in rowIndices:
+        #     for index, row in df.iterrows():
+        #         if rowIndex in row.values:
+        #             temp_numbers = [x for x in row.dropna() if isinstance(x, (int, float))]
+        #             if temp_numbers:
+        #                 results[rowIndex] = temp_numbers
+        #                 break  # Assumes only one match per rowIndex is needed
+
+        # return results
+        all_numbers = []  # List to hold all numbers found
+
         if isinstance(rowIndices, str):
             rowIndices = [rowIndices]
 
         for rowIndex in rowIndices:
             for index, row in df.iterrows():
-                # Check if rowIndex (category or tag) is in any cell of the row
                 if rowIndex in row.values:
-                    # Drop NaNs and keep numeric values
-                    temp_numbers = row.dropna().tolist()
                     temp_numbers = [
-                        x for x in temp_numbers if isinstance(x, (int, float))]
-                    # Update numbers with the last found set of numeric values
-                    numbers = temp_numbers
+                        x for x in row.dropna() if isinstance(x, (int, float))]
+                    # Concatenate numbers for this rowIndex
+                    all_numbers.extend(temp_numbers)
+                    break  # Assumes only one match per rowIndex is needed
 
-        return numbers
+        return all_numbers
 
     def extract_info(self, values_to_assign, rowIndex, found_year, found_months, found_cities):
         """ input value list== 4, cities == 2, months ==2, year ==1, rowIndex ==1
@@ -272,9 +282,9 @@ class excelAAlt:
                     f"Sheet '4' not found in {file_path}. Skipping this file.")
                 continue
 
-                # Process the sheet in segments of 43 rows, treating each as a separate page.
+            # Process the sheet in segments of 43 rows, treating each as a separate page.
             # Identify segments based on "Table 4" marker
-            segment_boundaries = []
+            segment_boundaries = [0]
             for index, row in sheet_df.iterrows():
                 if any("Table 4" in str(cell) for cell in row):
                     segment_boundaries.append(index)
@@ -295,6 +305,8 @@ class excelAAlt:
                 for rowIndex in self.rowIndices:
                     values_to_assign = self.extract_values_cleaned(
                         page_df, rowIndex)
+                    if len(values_to_assign) < 6:
+                        continue  # Skip to the next iteration of the loop if fewer than 6 elements
                     if values_to_assign:
                         full_rows = self.extract_info2(
                             values_to_assign, rowIndex, found_year, found_months, found_cities)
@@ -308,12 +320,12 @@ class excelAAlt:
 extractor = excelAAlt()
 
 # %%
-# file_path = '../data/2016'
-# extractor.processPages(file_path)  # %%
+file_path = '../data/2016'
+extractor.processPages(file_path)  # %%
 
 # %%
-file_path2 = '../data/2018'
-extractor.processPages2(file_path2)  # %%
+# file_path2 = '../data/2019'
+# extractor.processPages2(file_path2)  # %%
 
 
 # %%
