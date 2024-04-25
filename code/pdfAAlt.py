@@ -1,5 +1,5 @@
 # %%
-# %pip install pdfplumber
+# pip install pdfplumber
 import pdfplumber
 import os
 import pandas as pd
@@ -17,17 +17,25 @@ class pdfAA:
         """
         contructor
         """
-        self.cities = ["MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA", "HOFHUF", "DAMMAM", "TABUK", "ABHA", "Jazan", "Hail",
-                       "Baha", "Njran", "Arar", "Skaka"]  # up to page 18 on 2003.pdf. Bottom of page says page 19. Why some all caps in the pdf??
+        # self.cities = ["MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA", "HOFHUF", "DAMMAM", "TABUK", "ABHA", "Jazan", "Hail",
+        #                "Baha", "Njran", "Arar", "Skaka"]  # up to page 18 on 2003.pdf. Bottom of page says page 19. Why some all caps in the pdf??
+        self.cities = [
+            "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
+            "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+            "NJRAN", "ARAR", "SKAKA"
+        ]
+
         self.months = ["JAN", "FEB", "MAR", "APR", "MAY",
                        "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+
         self.years = list(range(2002, 2011))  # from 2002 - 2015
+
         multicolumns = pd.MultiIndex.from_product(
             [self.cities, self.years, self.months], names=['City', 'Year', 'Month'])
-        #
+
         self.rowIndices = ["General Index", "Foodstuffs", "Cereals and cereal products", "Meat and Poultry", "Fish and crustaceans", "Milk and dairy products", "Eggs", "Cooking oil and fats", "Fresh vegetables", "Preserved and canned vegetables", "Legumes and tubers", "Fresh fruits", "Preserved and canned fruits", "Nuts, peanuts, seeds", "Sugars and sugar preparations", "Beverages", "Foodstuffs, other", "Tobacco", "Out-of-home meals", "Fabrics, clothing and footwear", "Men's fabrics", "Women's fabrics", "Men's apparel", "Women's apparel", "Tailoring", "Footwear", "House and related items", "Home repairs", "Rents", "Water supply expenditure", "Fuel and Power", "Home furniture",
                            "Furniture and carpet", "Home furnishings", "Small home appliances", "kitchenhouse & tabletualis", "Household small items", "Home services", "Basic home appliances", "Medical care", "Medical care expenses", "Other medical expenses", "Medicines", "Transport and telecommunications", "Private transport means", "Operation of private transport means", "Public transport fees", "Telecommunications and related costs", "Education and entertainment", "Entertainment expenses", "Education expenses", "Entertainment devices", "Other expenses and services", "Personal hygiene and care items", "Personal goods", "Other expenses and services"]  # taken from page 12 of 2003.pdf. Bottom of page says page 19.
-        #
+
         # three-level column heads. Store all info here.
         self.cityIndexDf = pd.DataFrame(
             index=self.rowIndices, columns=multicolumns)
@@ -103,7 +111,11 @@ class pdfAA:
         #     if str(year) in pageText:
         #         found_year = year
         #         break  # Exit once the first year is found
-
+        city_name_variants = {
+            "jazzan": "JAZAN",
+            "alhofuf": "ALHOFOF",
+            "hofhuf": "ALHOFOF",
+        }
         match = re.search(r'\b(200[2-9]|201[01])\b', pageText)
         if match:
             # Extract the first year found in the text
@@ -113,11 +125,15 @@ class pdfAA:
             found_year = "Unknown"
 
             return found_year
+        # Normalize the page text to simplify matching
+        normalized_text = pageText.upper()
+        for variant, correct in city_name_variants.items():
+            normalized_text = normalized_text.replace(variant.upper(), correct)
 
         # Search for city names directly in the text
         found_city = "Unknown"
         for city_name in self.cities:
-            if city_name.upper() in pageText.upper():  # Making the search case-insensitive
+            if city_name in normalized_text:  # Check using the normalized city names
                 found_city = city_name
                 break  # Exit the loop once the first city name is found
 
@@ -166,7 +182,7 @@ class pdfAA:
             if rowIndex == matched_string.strip():
                 # Extract the first year found in the text
                 # found_year = match.group(0)
-            # if rowText.startswith(rowIndex):
+                # if rowText.startswith(rowIndex):
                 # After finding a matching expenditure group, extract the next float value in the text
                 # This regex looks for a sequence of digits possibly followed by a decimal point and more digits
                 value_pattern = re.compile(r'(\d+\.\d+|\d+)')
@@ -176,7 +192,7 @@ class pdfAA:
                 if value_match:
                     # Convert the matched numeric string to a float
                     value = float(value_match.group(0))
-                    return [rowIndex, value]           
+                    return [rowIndex, value]
 
         # If no matching expenditure group or value is found, return None
         return None
@@ -205,10 +221,15 @@ class pdfAA:
 # pdf_path = "/Users/amjad/OneDrive/المستندات/GWU_Cources/Spring2024/capstone_project/data/2003.pdf"
 # pdf_path = "../data/2003_sample.pdf"
 pdf_path = "../data/2003.pdf"
-thepdf = pdfAA(pdf_path)
-thepdf.importPdf(xoffsetleft=0.4)
+thepdf = pdfAA()
+thepdf.importPdf(pdf_path,xoffsetleft=0.4)
 # for some reason it takes the value of the next month and add it to the index of this month
 thepdf.processPages()
 # thepdf.importPdf(pdf_path)
 
 # %%
+pdf_path2 = "../data/2002.pdf"
+thepdf = pdfAA()
+thepdf.importPdf(xoffsetleft=0.4)
+# for some reason it takes the value of the next month and add it to the index of this month
+thepdf.processPages()

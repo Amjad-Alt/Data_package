@@ -21,7 +21,7 @@ class excelAAlt:
         """
         self.cities = [
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
-            "HOFHUF", "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "JAZZAN", "HAIL", "BAHA",
+            "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
             "NJRAN", "ARAR", "SKAKA"
         ]
         self.months = [
@@ -103,7 +103,11 @@ class excelAAlt:
         found_year = None
         found_months = []
         found_cities = []
-
+        city_variants = {
+            "jazzan": "JAZAN",
+            "alhofuf": "HOFHUF",
+            # Add any other variant mappings here
+        }
         combined_text = " ".join(df.iloc[:16].astype(str).values.flatten())
         year_re = re.compile(r'(2015|2016|2017|2018|2019)')
         year_match = year_re.search(combined_text)
@@ -116,8 +120,20 @@ class excelAAlt:
                 if len(found_months) == 2:
                     break
 
+        # for city in self.cities:
+        #     if city.lower() in combined_text.lower():
+        #         found_cities.append(city)
+        #         if len(found_cities) == 2:
+        #             break
+        # Normalize city names in the combined_text
+        normalized_text = combined_text.lower()
+        for variant, standard in city_variants.items():
+            normalized_text = normalized_text.replace(
+                variant, standard.lower())
+
+        # Now search for standard city names in the normalized text
         for city in self.cities:
-            if city.lower() in combined_text.lower():
+            if city.lower() in normalized_text:
                 found_cities.append(city)
                 if len(found_cities) == 2:
                     break
@@ -318,14 +334,44 @@ class excelAAlt:
 
 # %%
 extractor = excelAAlt()
+#%%
+file_path2 = '../data/2015'
+extractor.processPages(file_path2)  # %%
 
 # %%
 file_path = '../data/2016'
 extractor.processPages(file_path)  # %%
 
 # %%
-# file_path2 = '../data/2019'
-# extractor.processPages2(file_path2)  # %%
+file_path3 = '../data/2017'
+extractor.processPages(file_path3)  # %%
+#%%
+file_path4 = '../data/2018'
+extractor.processPages2(file_path4)  # %%
+#%%
+file_path5 = '../data/2019'
+extractor.processPages2(file_path5)  # %%
 
-
+catagory_norm = {"NON-ALCOHOLIC BEVERAGES" : "BEVERAGES",
+"CLOTHING  AND FOOTWEAR" : "CLOTHING AND FOOTWEAR",
+"ACTUAL RENTALS FOR HOUSING" : "RENTALS FOR HOUSING",
+"MAINTENANCE AND REPAIR OF THE DWELLING" : "MAITENANCE OF THE DEWELLING",
+"WATER SUPPLY AND MISCLLNEOUS SERVICES " : "WATER SUPPLY & OTHER SERVICES",
+"FURNISHINGS, HOUSEHOLD EQUIPMENT" : "FURNISHINGS, HOUSEHOLD EQUIPMENT AND MAINTENANCE",
+"FURNITURE AND FURNISHINGS, CARPETS ": "FURNITURE & CARPETS",
+"GLASSWARE, TABLEWARE AND HOUSEHOLD UTENSILS" : "HOUSEHOLD UTENSILS",
+"TOOLS AND EQUIPMENT FOR HOUSE AND GARDEN" : "TOOLS FOR HOUSE & GARDEN",
+"GOODS AND SERVICES FOR ROUTINE HOUSEHOLD": "GOODS FOR HOUSEHOLD MAINTENANCE",
+"MEDICAL PRODUCTS, APPLIANCES AND EQUIPMENT" : "MEDICAL PRODUCTS & EQUIPMENT",
+"OPERATION OF PERSONAL TRANSPORT EQUIPMENT": "OPERATION OF TRANSPORT EQUIPMENT",
+"AUDIO-VISUAL, PHOTO- GRAPHIC AND" : "AUDIO, PHOTO & INFO. EQUIPMENT",
+"OTHER MAJOR DURABLES FOR RECREATION":"OTHER RECREATION & CULTURE GOODS",
+"OTHER RECREATIONAL ITEMS ":"OTHER RECREATIONAL GOODS",
+"RECREATIONAL AND CULTURAL SERVICES":"RECREATIONAL & CULTURAL SERVICES",
+" BOOKS , NEWSPAPERS AND STATIONARY":"NEWSPAPERS, BOOKS & STATIONERY",
+"PRE-PRIMARY AND PRIMARY EDICATION":"PRE-PRIMARY & PRIMARY EDUCATION",
+"SECONDARY EDUCATION":"SECONDARY&INTERMEDIATE EDUCATION",
+"Post-secondry non-tertiary education":"POST-SECONDARY EDUCATION",
+"FINANCIAL SERVICES N.E.C.":"FINANCIAL SERVICES N.E C.",
+"HOUSING, WATER, ELECTRICITY, GAS AND OTHER FUELS":"HOUSING, WATER, ELECTRI-CITY ,GAS AND OTHER FUELS"}
 # %%

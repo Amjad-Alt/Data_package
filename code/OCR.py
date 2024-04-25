@@ -118,9 +118,14 @@ class OCRAAlt:
         Constructor initializes the class with lists of cities, months, years,
         and sets up a multi-index DataFrame for storing extracted data.
         """
+        # self.cities = [
+        #     "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
+        #     "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+        #     "NJRAN", "ARAR", "SKAKA"
+        # ]
         self.cities = [
             "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
-            "HOFHUF", "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+            "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
             "NJRAN", "ARAR", "SKAKA"
         ]
         self.months = [
@@ -189,7 +194,7 @@ class OCRAAlt:
                            'INSURANCE',
                            'FINANCIAL SERVICES N.E C.',
                            'OTHER SERVICES N.E.C.'
-                           ]
+                           ] 
 
         # Setup DataFrame with multi-level columns and no initial rows
         self.cityIndexDf = pd.DataFrame(columns=multicolumns)
@@ -211,12 +216,12 @@ class OCRAAlt:
         # but skip every other image containing "Table 4" starting from the first one found.
         all_text = []
         # found_table_4 = False  # Flag to indicate if "Table 4" has been found
-        count_table_4 = 0  # Counter for images with "Table 4"
+        # count_table_4 = 0  # Counter for images with "Table 4"
 
         for img in images:
             text = pytesseract.image_to_string(img, lang='eng')
             # if 'Table 4' in text and 'JAN DEC' not in text:
-            if 'Table 4' in text and not any( element in text for element in ['JAN DEC','MAR FEB','MAY APR','JUL JUN','SEP AUG','NOV OCT']):
+            if 'Table 4' in text and not any(element in text for element in ['JAN DEC', 'MAR FEB', 'MAY APR', 'JUL JUN', 'SEP AUG', 'NOV OCT']):
                 # count_table_4 += 1  # Increment counter each time "Table 4" is found
                 # Calculate the current set (group of 8) this image belongs to
                 # current_set = (count_table_4 - 1) // 8
@@ -244,6 +249,16 @@ class OCRAAlt:
             # If "Table 4" is not found in the text, no action is required
         return all_text
 
+    def evaluate(self, images):
+        all_text = []
+
+        for img in images:
+            text = pytesseract.image_to_string(img, lang='eng')
+            # have to check JAN and DEC
+            if 'Table 4' in text and any(element in text for element in ['MAR FEB', 'MAY APR', 'JUL JUN', 'SEP AUG', 'NOV OCT']):
+                all_text.append(text)
+        return all_text
+
     def convert_pdf_to_image(self, pdf_path):
         # Convert PDF to images, one image per page
         return pdf2image.convert_from_path(pdf_path, poppler_path=self.poppler_path)
@@ -261,7 +276,11 @@ class OCRAAlt:
         found_year = None
         found_months = []
         found_cities = []
-
+        city_name_variants = {
+            "jazzan": "JAZAN",
+            "alhofuf": "ALHOFOF",
+            "hofhuf": "ALHOFOF",
+        }
         year_re = re.compile(r'(2012|2013|2014)')
         year_match = year_re.search(text)
         if year_match:
@@ -275,9 +294,15 @@ class OCRAAlt:
                 found_months.append(found_month)
             if len(found_months) == 2:
                 break
+            
+        # Normalize city names in the combined_text
+        normalized_text = text.lower()
+        for variant, standard in city_name_variants.items():
+            normalized_text = normalized_text.replace(
+                variant, standard.lower())
 
         for city in self.cities:
-            if city.lower() in text.lower():
+            if city.lower() in normalized_text.lower():
                 found_cities.append(city)
                 if len(found_cities) == 2:
                     break
@@ -325,8 +350,9 @@ class OCRAAlt:
         data = []
         numbers = values_to_assign.copy()
         if len(numbers) < 6:
-            print(f"Row not read properly. Cities: {found_cities}, RowIndex: {rowIndex}, Year: {found_year}, Months: {found_months}")
-            return data  
+            print(
+                f"Row not read properly. Cities: {found_cities}, RowIndex: {rowIndex}, Year: {found_year}, Months: {found_months}")
+            return data
 
         if len(found_cities) == 2 and len(found_months) == 2:
             # values are in a specific order
@@ -339,6 +365,31 @@ class OCRAAlt:
             data.append([found_cities[1], found_year,
                         found_months[0], rowIndex, numbers[0]])
         return data
+
+    def check(self, city, year, month, rowIndex, expected_value):
+        """
+        Check if the value in the DataFrame for the specified city, year, month, and rowIndex
+        matches the expected value. If not, print the discrepancy.
+        """
+        # actual_value = self.cityIndexDf.loc[rowIndex, (city, year, month)]
+        # if actual_value != expected_value:
+        #     print(
+        #         f"Discrepancy found: City: {city}, Month: {month}, Expected: {expected_value}, Actual: {actual_value}")
+        try:
+            actual_value = self.cityIndexDf.loc[rowIndex, (city, year, month)]
+            if actual_value != expected_value:
+                print(
+                    f"Discrepancy found: City: {city}, Month: {month}, {rowIndex}, Expected: {expected_value}, Actual: {actual_value}")
+            # If actual value is NaN, update it with expected_value
+            if pd.isnull(actual_value):
+                self.cityIndexDf.loc[rowIndex,
+                                     (city, year, month)] = expected_value
+                print(
+                    f"Filled missing value for {city}, {year}, {month}, {rowIndex} with expected value: {expected_value}")
+
+        except KeyError:
+            print(
+                f"Data not found for City: {city}, Year: {year}, Month: {month}, Category: {rowIndex}")
 
     def process(self, pdf_path):
         """Main method to process the PDF file.
@@ -360,10 +411,77 @@ class OCRAAlt:
                     # 'city', 'year', and 'month' are columns in DataFrame
                     self.cityIndexDf.loc[rowIndex, (city, year, month)] = value
 
+    def evaluate_process(self, pdf_path):
+        """
+        Process the PDF file like the 'process' method but includes validation checks
+        to ensure the DataFrame has correct values after processing.
+        """
+        images = self.convert_pdf_to_image(pdf_path)
+        extracted_texts = self.evaluate(images)  # Using evaluate to get text
+
+        for text in extracted_texts:
+            # Store the result of year_months_cities
+            result = self.year_months_cities(text)
+            if result is None:
+                # Handle the case where year_months_cities returns None.
+                continue  # Skip to the next iteration of the loop
+
+            found_year, found_months, found_cities = self.year_months_cities(
+                text)
+            values_to_assign = self.values(text, self.rowIndices)
+
+            for rowIndex, values in values_to_assign.items():
+                matched_data = self.mach(
+                    values, rowIndex, found_year, found_months, found_cities)
+
+                for data in matched_data:
+                    city, year, month, rowIndex, expected_value = data
+                    self.check(city, year, month, rowIndex,
+                               expected_value)  # Validation check
+
 
 # %%
-pdf_path = '../data/2012.pdf'
-# pdf_path = '../data/2012.pdf'
 ocr_alt = OCRAAlt()
+#%%
+pdf_path = '../data/2014.pdf'
 ocr_alt.process(pdf_path)
+ocr_alt.evaluate_process(pdf_path)
+# %%
+pdf_path2 = '../data/2012.pdf'
+ocr_alt.process(pdf_path2)
+ocr_alt.evaluate_process(pdf_path2)
+#%%
+pdf_path3 = '../data/2013.pdf'
+ocr_alt.process(pdf_path3)
+ocr_alt.evaluate_process(pdf_path3)
+
+#%%
+# Count unique cities, years, and categories
+num_cities = ocr_alt.cityIndexDf.columns.get_level_values('City').nunique()
+num_years = ocr_alt.cityIndexDf.columns.get_level_values('Year').nunique()
+num_categories = ocr_alt.cityIndexDf.index.nunique()
+
+print(f"Number of unique cities: {num_cities}")
+print(f"Number of unique years: {num_years}")
+print(f"Number of unique categories: {num_categories}")
+# %%
+
+# Total number of values in the DataFrame
+total_values = ocr_alt.cityIndexDf.size
+
+# Count NaN values in the DataFrame
+nan_count = ocr_alt.cityIndexDf.isna().sum().sum()
+
+# Calculate the proportion of NaN values
+nan_proportion = nan_count / total_values
+
+print(f"Total number of values: {total_values}")
+print(f"Total number of NaN values: {nan_count}")
+print(f"Proportion of NaN values: {nan_proportion:.2%}")  # formatted as a percentage
+
+# %%
+#import openpyxl
+# Save DataFrame to Excel file
+ocr_alt.cityIndexDf.to_excel('cityIndexData.xlsx', sheet_name='City Data', engine='openpyxl')
+
 # %%
