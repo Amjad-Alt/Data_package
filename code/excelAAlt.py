@@ -28,7 +28,7 @@ class excelAAlt:
             "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
         ]
-        self.years = list(range(2015, 2017))
+        self.years = list(range(2015, 2020))
 
         # Setup multi-level columns for the DataFrame
         multicolumns = pd.MultiIndex.from_product(
@@ -144,84 +144,38 @@ class excelAAlt:
             return None
 
     def extract_values(self, df, rowIndices):
+        # category_norm = {"NON-ALCOHOLIC BEVERAGES" : "BEVERAGES",
+        #     "CLOTHING  AND FOOTWEAR" : "CLOTHING AND FOOTWEAR",
+        #     "ACTUAL RENTALS FOR HOUSING" : "RENTALS FOR HOUSING",
+        #     "MAINTENANCE AND REPAIR OF THE DWELLING" : "MAITENANCE OF THE DEWELLING",
+        #     "WATER SUPPLY AND MISCLLNEOUS SERVICES " : "WATER SUPPLY & OTHER SERVICES",
+        #     "FURNISHINGS, HOUSEHOLD EQUIPMENT" : "FURNISHINGS, HOUSEHOLD EQUIPMENT AND MAINTENANCE",
+        #     "FURNITURE AND FURNISHINGS, CARPETS ": "FURNITURE & CARPETS",
+        #     "GLASSWARE, TABLEWARE AND HOUSEHOLD UTENSILS" : "HOUSEHOLD UTENSILS",
+        #     "TOOLS AND EQUIPMENT FOR HOUSE AND GARDEN" : "TOOLS FOR HOUSE & GARDEN",
+        #     "GOODS AND SERVICES FOR ROUTINE HOUSEHOLD": "GOODS FOR HOUSEHOLD MAINTENANCE",
+        #     "MEDICAL PRODUCTS, APPLIANCES AND EQUIPMENT" : "MEDICAL PRODUCTS & EQUIPMENT",
+        #     "OPERATION OF PERSONAL TRANSPORT EQUIPMENT": "OPERATION OF TRANSPORT EQUIPMENT",
+        #     "AUDIO-VISUAL, PHOTO- GRAPHIC AND" : "AUDIO, PHOTO & INFO. EQUIPMENT",
+        #     "OTHER MAJOR DURABLES FOR RECREATION":"OTHER RECREATION & CULTURE GOODS",
+        #     "OTHER RECREATIONAL ITEMS ":"OTHER RECREATIONAL GOODS",
+        #     "RECREATIONAL AND CULTURAL SERVICES":"RECREATIONAL & CULTURAL SERVICES",
+        #     " BOOKS , NEWSPAPERS AND STATIONARY":"NEWSPAPERS, BOOKS & STATIONERY",
+        #     "PRE-PRIMARY AND PRIMARY EDICATION":"PRE-PRIMARY & PRIMARY EDUCATION",
+        #     "SECONDARY EDUCATION":"SECONDARY&INTERMEDIATE EDUCATION",
+        #     "Post-secondry non-tertiary education":"POST-SECONDARY EDUCATION",
+        #     "FINANCIAL SERVICES N.E.C.":"FINANCIAL SERVICES N.E C.",
+        #     "HOUSING, WATER, ELECTRICITY, GAS AND OTHER FUELS":"HOUSING, WATER, ELECTRI-CITY ,GAS AND OTHER FUELS"}
+        # # Normalize the rowIndices based on the category_norm dictionary
         # if isinstance(rowIndices, str):
-        #     # Ensure rowIndices is a list if it's a single string
-        #     rowIndices = [rowIndices]
-
-        # all_values = []  # List to collect the sets of values for each rowIndex
-
-        # # Iterate through each rowIndex
-        # for rowIndex in rowIndices:
-        #     found = False
-        #     # Search through the DataFrame for the rowIndex
-        #     for row in range(len(df)):
-        #         if rowIndex in df.iloc[row, :].astype(str).values:
-        #             found = True
-        #         # Determine the starting column index for values extraction based on rowIndex presence
-        #         start_col = df.columns.get_loc(df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0])
-        #         # Extract and append the values  their relative positions to start_col
-        #         values_for_current_rowIndex = [
-        #             df.iloc[row, start_col],
-        #             df.iloc[row,start_col - 1],
-        #             df.iloc[row, start_col - 4],
-        #             df.iloc[row, start_col - 5],
-        #         ]
-        #         all_values.append(values_for_current_rowIndex)
-
-        #             # Break the inner loop once the rowIndex is found and values extracted
-        #         break
-
-        #     # If rowIndex wasn't found in the DataFrame, append a placeholder
-        #     if not found:
-        #         all_values.append([None, None, None, None])
-
-        # return all_values
+        #     rowIndices = [category_norm.get(rowIndices, rowIndices)]
+        # else:
+        #     rowIndices = [category_norm.get(item, item) for item in rowIndices]
+        # # return all_values
         if isinstance(rowIndices, str):
             #     # Ensure rowIndices is a list if it's a single string
             rowIndices = [rowIndices]
-        for rowIndex in rowIndices:
-            for row in range(len(df)):
-                if rowIndex in df.iloc[row, :].values:
-                    if rowIndex in df.iloc[row, :].values:
-                        # Found the row where rowIndex is located
-                        start_col = df.columns.get_loc(
-                            df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0]) - 1
-                        values_to_assign = [
-                            # Value for city[1], month[1]
-                            df.iloc[row, start_col],
-                            # Value for city[1], month[0]
-                            df.iloc[row, start_col - 1],
-                            # Value for city[0], month[1] (skipping two cell)
-                            df.iloc[row, start_col - 4],
-                            # Value for city[0], month[0]
-                            df.iloc[row, start_col - 5],
-                        ]
-                        if values_to_assign:
-                            return (rowIndex, values_to_assign)
-
-    def extract_values_cleaned(self, df, rowIndices):
-        """
-        Iterates over rows in the provided DataFrame segment (df), cleans NaN values, and
-        collects remaining numbers along with their row indices.
-        """
-        # results = {}  # Dictionary to hold results for each rowIndex
-
-        # if isinstance(rowIndices, str):
-        #     rowIndices = [rowIndices]
-
-        # for rowIndex in rowIndices:
-        #     for index, row in df.iterrows():
-        #         if rowIndex in row.values:
-        #             temp_numbers = [x for x in row.dropna() if isinstance(x, (int, float))]
-        #             if temp_numbers:
-        #                 results[rowIndex] = temp_numbers
-        #                 break  # Assumes only one match per rowIndex is needed
-
-        # return results
         all_numbers = []  # List to hold all numbers found
-
-        if isinstance(rowIndices, str):
-            rowIndices = [rowIndices]
 
         for rowIndex in rowIndices:
             for index, row in df.iterrows():
@@ -233,19 +187,88 @@ class excelAAlt:
                     break  # Assumes only one match per rowIndex is needed
 
         return all_numbers
+        # for rowIndex in rowIndices:
+        #     for row in range(len(df)):
+        #         if rowIndex in df.iloc[row, :].values:
+        #             if rowIndex in df.iloc[row, :].values:
+        #                 # Found the row where rowIndex is located
+        #                 start_col = df.columns.get_loc(
+        #                     df.iloc[row, :][df.iloc[row, :].str.contains(rowIndex, na=False)].index[0]) - 1
+        #                 values_to_assign = [
+        #                     # Value for city[1], month[1]
+        #                     df.iloc[row, start_col],
+        #                     # Value for city[1], month[0]
+        #                     df.iloc[row, start_col - 1],
+        #                     # Value for city[0], month[1] (skipping two cell)
+        #                     df.iloc[row, start_col - 4],
+        #                     # Value for city[0], month[0]
+        #                     df.iloc[row, start_col - 5],
+        #                 ]
+        #                 if values_to_assign:
+        #                     return (rowIndex, values_to_assign)
+
+    def extract_values_cleaned(self, df, rowIndices):
+        """
+        Iterates over rows in the provided DataFrame segment (df), cleans NaN values, and
+        collects remaining numbers along with their row indices.
+        """
+        category_norm = {
+            "NON-ALCOHOLIC BEVERAGES": "BEVERAGES",
+            "CLOTHING  AND FOOTWEAR": "CLOTHING AND FOOTWEAR",
+            "ACTUAL RENTALS FOR HOUSING": "RENTALS FOR HOUSING",
+            "MAINTENANCE AND REPAIR OF THE DWELLING": "MAITENANCE OF THE DEWELLING",
+            "WATER SUPPLY AND MISCLLNEOUS SERVICES ": "WATER SUPPLY & OTHER SERVICES",
+            "FURNISHINGS, HOUSEHOLD EQUIPMENT": "FURNISHINGS, HOUSEHOLD EQUIPMENT AND MAINTENANCE",
+            "FURNITURE AND FURNISHINGS, CARPETS ": "FURNITURE & CARPETS",
+            "GLASSWARE, TABLEWARE AND HOUSEHOLD UTENSILS": "HOUSEHOLD UTENSILS",
+            "TOOLS AND EQUIPMENT FOR HOUSE AND GARDEN": "TOOLS FOR HOUSE & GARDEN",
+            "GOODS AND SERVICES FOR ROUTINE HOUSEHOLD": "GOODS FOR HOUSEHOLD MAINTENANCE",
+            "MEDICAL PRODUCTS, APPLIANCES AND EQUIPMENT": "MEDICAL PRODUCTS & EQUIPMENT",
+            "OPERATION OF PERSONAL TRANSPORT EQUIPMENT": "OPERATION OF TRANSPORT EQUIPMENT",
+            "AUDIO-VISUAL, PHOTO- GRAPHIC AND": "AUDIO, PHOTO & INFO. EQUIPMENT",
+            "OTHER MAJOR DURABLES FOR RECREATION": "OTHER RECREATION & CULTURE GOODS",
+            "OTHER RECREATIONAL ITEMS ": "OTHER RECREATIONAL GOODS",
+            "RECREATIONAL AND CULTURAL SERVICES": "RECREATIONAL & CULTURAL SERVICES",
+            " BOOKS , NEWSPAPERS AND STATIONARY": "NEWSPAPERS, BOOKS & STATIONERY",
+            "PRE-PRIMARY AND PRIMARY EDICATION": "PRE-PRIMARY & PRIMARY EDUCATION",
+            "SECONDARY EDUCATION": "SECONDARY&INTERMEDIATE EDUCATION",
+            "Post-secondry non-tertiary education": "POST-SECONDARY EDUCATION",
+            "FINANCIAL SERVICES N.E.C.": "FINANCIAL SERVICES N.E C.",
+            "HOUSING, WATER, ELECTRICITY, GAS AND OTHER FUELS": "HOUSING, WATER, ELECTRI-CITY ,GAS AND OTHER FUELS"
+        }
+
+        # Normalize the rowIndices based on the category_norm dictionary
+        if isinstance(rowIndices, str):
+            rowIndices = [category_norm.get(rowIndices, rowIndices)]
+        else:
+            rowIndices = [category_norm.get(item, item) for item in rowIndices]
+
+
+        all_numbers = []  # List to hold all numbers found
+
+        for rowIndex in rowIndices:
+            for index, row in df.iterrows():
+                if rowIndex in row.values:
+                    temp_numbers = [
+                        x for x in row.dropna() if isinstance(x, (int, float)) and x >= 20]
+                    # Concatenate numbers for this rowIndex
+                    all_numbers.extend(temp_numbers)
+                    break  # Assumes only one match per rowIndex is needed
+
+        return all_numbers
 
     def extract_info(self, values_to_assign, rowIndex, found_year, found_months, found_cities):
         """ input value list== 4, cities == 2, months ==2, year ==1, rowIndex ==1
         do:
         self.cityIndexDf.loc[rowValues[0], (cityYearMonth[0], cityYearMonth[1], cityYearMonth[2])] = rowValues[1]"""
         one = [found_cities[0], found_year,
-               found_months[0], rowIndex, values_to_assign[3]]
+               found_months[0], rowIndex, values_to_assign[0]]
         two = [found_cities[0], found_year,
-               found_months[1], rowIndex, values_to_assign[2]]
+               found_months[1], rowIndex, values_to_assign[1]]
         three = [found_cities[1], found_year,
-                 found_months[0], rowIndex, values_to_assign[1]]
+                 found_months[0], rowIndex, values_to_assign[2]]
         four = [found_cities[1], found_year,
-                found_months[1], rowIndex, values_to_assign[0]]
+                found_months[1], rowIndex, values_to_assign[3]]
         if one:
             return (one, two, three, four)
 
@@ -254,9 +277,9 @@ class excelAAlt:
         do:
         self.cityIndexDf.loc[rowValues[0], (cityYearMonth[0], cityYearMonth[1], cityYearMonth[2])] = rowValues[1]"""
         one = [found_cities[0], found_year,
-               found_months[0], rowIndex, values_to_assign[4]]
+               found_months[0], rowIndex, values_to_assign[3]]
         two = [found_cities[0], found_year,
-               found_months[1], rowIndex, values_to_assign[3]]
+               found_months[1], rowIndex, values_to_assign[2]]
         three = [found_cities[1], found_year,
                  found_months[0], rowIndex, values_to_assign[1]]
         four = [found_cities[1], found_year,
@@ -274,13 +297,16 @@ class excelAAlt:
                     if cityYearMonth:
                         found_year, found_months, found_cities = cityYearMonth
                         for rowIndex in self.rowIndices:
-                            values_to_assign = self.extract_values(
+                            values_to_assign = self.extract_values_cleaned(
                                 df, rowIndex)
-                            if values_to_assign:
-                                rowIndex, values_to_assign = values_to_assign
+                            if len(values_to_assign) < 4:
+                                continue 
+                            # if values_to_assign:
+                            #     rowIndex, values_to_assign = values_to_assign
                             if values_to_assign:
                                 full_rows = self.extract_info(
                                     values_to_assign, rowIndex, found_year, found_months, found_cities)
+                               
                                 if full_rows:
                                     for full_row in full_rows:
                                         # update the DataFrame with the extracted values
@@ -321,7 +347,7 @@ class excelAAlt:
                 for rowIndex in self.rowIndices:
                     values_to_assign = self.extract_values_cleaned(
                         page_df, rowIndex)
-                    if len(values_to_assign) < 6:
+                    if len(values_to_assign) < 4:
                         continue  # Skip to the next iteration of the loop if fewer than 6 elements
                     if values_to_assign:
                         full_rows = self.extract_info2(
@@ -337,41 +363,37 @@ extractor = excelAAlt()
 #%%
 file_path2 = '../data/2015'
 extractor.processPages(file_path2)  # %%
-
-# %%
 file_path = '../data/2016'
 extractor.processPages(file_path)  # %%
 
-# %%
 file_path3 = '../data/2017'
 extractor.processPages(file_path3)  # %%
 #%%
 file_path4 = '../data/2018'
 extractor.processPages2(file_path4)  # %%
-#%%
+
 file_path5 = '../data/2019'
 extractor.processPages2(file_path5)  # %%
 
-catagory_norm = {"NON-ALCOHOLIC BEVERAGES" : "BEVERAGES",
-"CLOTHING  AND FOOTWEAR" : "CLOTHING AND FOOTWEAR",
-"ACTUAL RENTALS FOR HOUSING" : "RENTALS FOR HOUSING",
-"MAINTENANCE AND REPAIR OF THE DWELLING" : "MAITENANCE OF THE DEWELLING",
-"WATER SUPPLY AND MISCLLNEOUS SERVICES " : "WATER SUPPLY & OTHER SERVICES",
-"FURNISHINGS, HOUSEHOLD EQUIPMENT" : "FURNISHINGS, HOUSEHOLD EQUIPMENT AND MAINTENANCE",
-"FURNITURE AND FURNISHINGS, CARPETS ": "FURNITURE & CARPETS",
-"GLASSWARE, TABLEWARE AND HOUSEHOLD UTENSILS" : "HOUSEHOLD UTENSILS",
-"TOOLS AND EQUIPMENT FOR HOUSE AND GARDEN" : "TOOLS FOR HOUSE & GARDEN",
-"GOODS AND SERVICES FOR ROUTINE HOUSEHOLD": "GOODS FOR HOUSEHOLD MAINTENANCE",
-"MEDICAL PRODUCTS, APPLIANCES AND EQUIPMENT" : "MEDICAL PRODUCTS & EQUIPMENT",
-"OPERATION OF PERSONAL TRANSPORT EQUIPMENT": "OPERATION OF TRANSPORT EQUIPMENT",
-"AUDIO-VISUAL, PHOTO- GRAPHIC AND" : "AUDIO, PHOTO & INFO. EQUIPMENT",
-"OTHER MAJOR DURABLES FOR RECREATION":"OTHER RECREATION & CULTURE GOODS",
-"OTHER RECREATIONAL ITEMS ":"OTHER RECREATIONAL GOODS",
-"RECREATIONAL AND CULTURAL SERVICES":"RECREATIONAL & CULTURAL SERVICES",
-" BOOKS , NEWSPAPERS AND STATIONARY":"NEWSPAPERS, BOOKS & STATIONERY",
-"PRE-PRIMARY AND PRIMARY EDICATION":"PRE-PRIMARY & PRIMARY EDUCATION",
-"SECONDARY EDUCATION":"SECONDARY&INTERMEDIATE EDUCATION",
-"Post-secondry non-tertiary education":"POST-SECONDARY EDUCATION",
-"FINANCIAL SERVICES N.E.C.":"FINANCIAL SERVICES N.E C.",
-"HOUSING, WATER, ELECTRICITY, GAS AND OTHER FUELS":"HOUSING, WATER, ELECTRI-CITY ,GAS AND OTHER FUELS"}
+
+#%%
+# Total number of values in the DataFrame
+total_values = extractor.cityIndexDf.size
+
+# Count NaN values in the DataFrame
+nan_count = extractor.cityIndexDf.isna().sum().sum()
+
+# Calculate the proportion of NaN values
+nan_proportion = nan_count / total_values
+
+print(f"Total number of values: {total_values}")
+print(f"Total number of NaN values: {nan_count}")
+# formatted as a percentage
+print(f"Proportion of NaN values: {nan_proportion:.2%}")
+
+# %%
+extractor.cityIndexDf.to_excel('cityIndexData2015-2019-2.xlsx', sheet_name='City Data', engine='openpyxl')
+
+# # %%
+
 # %%

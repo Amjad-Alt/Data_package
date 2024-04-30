@@ -1,0 +1,252 @@
+import pdfplumber
+import os
+import pandas as pd
+import re
+# %%
+
+
+class pdfpipe:
+
+    def __init__(self, pdf_path=""):
+        """
+        Constructor initializes the class with lists of cities, months, years,
+        and sets up a multi-index DataFrame for storing extracted data.
+        """
+        # self.cities = [
+        #     "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
+        #     "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+        #     "NJRAN", "ARAR", "SKAKA"
+        # ]
+        self.cities = [
+            "MAKKAH", "RIYADH", "TAIF", "JEDDAH", "BURAYDAH", "MEDINA",
+            "ALHOFOF", "DAMMAM", "TABUK", "ABHA", "JAZAN", "HAIL", "BAHA",
+            "NJRAN", "ARAR", "SKAKA"
+        ]
+        self.months = [
+            "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+            "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+        ]
+        self.years = list(range(2002, 2012))
+
+        # Setup multi-level columns for the DataFrame
+        multicolumns = pd.MultiIndex.from_product(
+            [self.cities, self.years, self.months],
+            names=['City', 'Year', 'Month']
+        )
+
+        self.rowIndices = ["General Index", "Foodstuffs", "Cereals and cereal products", "Meat and Poultry", "Fish and crustaceans", "Milk and dairy products", "Eggs", "Cooking oil and fats", "Fresh vegetables", "Preserved and canned vegetables", "Legumes and tubers", "Fresh fruits", "Preserved and canned fruits", "Nuts, peanuts, seeds", "Sugars and sugar preparations", "Beverages", "Foodstuffs, other", "Tobacco", "Out-of-home meals", "Fabrics, clothing and footwear", "Men's fabrics", "Women's fabrics", "Men's apparel", "Women's apparel", "Tailoring", "Footwear", "House and related items", "Home repairs", "Rents", "Water supply expenditure", "Fuel and Power", "Home furniture",
+                           "Furniture and carpet", "Home furnishings", "Small home appliances", "kitchenhouse & tabletualis", "Household small items", "Home services", "Basic home appliances", "Medical care", "Medical care expenses", "Other medical expenses", "Medicines", "Transport and telecommunications", "Private transport means", "Operation of private transport means", "Public transport fees", "Telecommunications and related costs", "Education and entertainment", "Entertainment expenses", "Education expenses", "Entertainment devices", "Other expenses and services", "Personal hygiene and care items", "Personal goods", "Other expenses and services"]  # taken from page 12 of 2003.pdf. Bottom of page says page 19.
+
+        # Setup DataFrame with multi-level columns and no initial rows
+        self.cityIndexDf = pd.DataFrame(columns=multicolumns)
+        self.cityIndexDf.index.name = "Category"  # Naming the index for clarity
+
+    def read_pdf(self, pdf_path):
+        """
+        Read text from each page of a PDF file.
+
+        Args:
+            pdf_path (str): Path to the PDF file to read.
+
+        Returns:
+            list of str: Text extracted from each page of the PDF.
+        """
+        text = []
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:  # Check if text was extracted
+                    text.append(page_text)
+                else:
+                    # Append empty string if no text is extracted
+                    text.append("")
+        return text
+
+    def check_page_type(self, page_text):
+        """
+        Check if the page contains specific content indicating it's about cities.
+
+        Args:
+            page_text (str): Text from a single PDF page.
+
+        Returns:
+            bool: True if the page is relevant, False otherwise.
+        """
+        pattern = re.compile(r'Table 4', re.IGNORECASE)
+        return bool(pattern.search(page_text))
+
+    def mach2(self, values_to_assign, rowIndex, found_year, found_months, found_cities):
+        data = []
+        numbers = values_to_assign.copy()
+        if len(numbers) < 6:
+            print(
+                f"Row not read properly. Cities: {found_cities}, RowIndex: {rowIndex}, Year: {found_year}, Months: {found_months}")
+            return data
+
+        if len(found_cities) == 2 and len(found_months) == 2:
+            # values are in a specific order
+            data.append([found_cities[0], found_year,
+                        found_months[1], rowIndex, numbers[0]])
+            data.append([found_cities[0], found_year,
+                        found_months[0], rowIndex, numbers[1]])
+            data.append([found_cities[1], found_year,
+                        found_months[1], rowIndex, numbers[3]])
+            data.append([found_cities[1], found_year,
+                        found_months[0], rowIndex, numbers[4]])
+            return data
+
+    def values(self, text, rowIndices):
+        """input: data and self.rowIndices
+        to do: loop through data then when you find rowIndices then get the line.
+        1st, 2ed, 4ed, 5ed numbers
+        output: ([rowIndix], [list of 4 numbers])"""
+        # data = {}
+        # for rowIndex in rowIndices:
+        #     pattern = re.compile(rowIndex + r'.*?(\d+\.\d+)')  # Adjust pattern as needed
+        #     matches = pattern.findall(text)
+        #     if matches:
+        #         data[rowIndex] = [float(num) for num in matches[:4]]  # Assuming 4 numbers of interest
+        # return data
+        data = {}
+        for rowIndex in rowIndices:
+            for line in text.split('\n'):
+                match = re.search(r'^\D*', line)
+                matched_string = match.group(0) if match else ''
+                if rowIndex == matched_string.strip():
+                    # Use regex to extract all numbers from the line
+                    numbers = re.findall(r'-?\d+\.\d+', line)
+                    if numbers:
+                        data[rowIndex] = [float(num) for num in numbers]
+        return data
+
+    def year_months_cities(self, text):
+        """input: all the data in one page
+        loop and find cities, months and year
+        output: two list of two index and a number"""
+        found_year = None
+        found_months = []
+        found_cities = []
+        city_name_variants = {
+            "jazzan": "JAZAN",
+            "alhofuf": "ALHOFOF",
+            "hofhuf": "ALHOFOF"
+        }
+        year_re = re.compile(r'(20\d{2})')
+        year_match = year_re.search(text)
+        if year_match:
+            found_year = int(year_match.group())
+
+        month_pattern = r'\b(' + '|'.join(self.months) + r')\b'
+        all_month_matches = re.finditer(month_pattern, text, re.IGNORECASE)
+        for match in all_month_matches:
+            found_month = match.group().upper()
+            if found_month not in found_months:
+                found_months.append(found_month)
+            if len(found_months) == 2:
+                break
+
+        # Normalize city names in the combined_text
+        normalized_text = text.lower()
+        for variant, standard in city_name_variants.items():
+            normalized_text2 = normalized_text.replace(
+                variant, standard.lower())
+
+        for city in self.cities:
+            if city.lower() in normalized_text2.lower():
+                found_cities.append(city)
+                if len(found_cities) == 2:
+                    break
+
+        if found_year and len(found_months) == 2 and len(found_cities) == 2:
+            return (found_year, found_months, found_cities)
+        else:
+            return None
+
+    def process2(self, pdf_path):
+        """
+        Process the PDF file using the pdfplumber library for text extraction.
+        """
+        texts = self.read_pdf(pdf_path)
+        for text in texts:
+            if self.check_page_type(text):
+                result = self.year_months_cities(text)
+                if result:
+                    # Proceed with processing this page
+                    found_year, found_months, found_cities = result
+                    if found_year and found_months and found_cities:
+                        values_to_assign = self.values(text, self.rowIndices)
+                        for rowIndex, values in values_to_assign.items():
+                            matched_data = self.mach2(
+                                values, rowIndex, found_year, found_months, found_cities)
+                            for data in matched_data:
+                                city, year, month, rowIndex, value = data
+                                self.cityIndexDf.loc[rowIndex,
+                                                     (city, year, month)] = value
+
+
+# %%
+pdf = pdfpipe()
+# #%%
+pdf_path = '../data/2002.pdf'
+pdf.process2(pdf_path)
+# #%%
+pdf_path = '../data/2003.pdf'
+pdf.process2(pdf_path)
+# %%
+pdf_path = '../data/2004.pdf'
+pdf.process2(pdf_path)
+# %%
+pdf_path = '../data/2005.pdf'
+pdf.process2(pdf_path)
+
+pdf_path = '../data/2006.pdf'
+pdf.process2(pdf_path)
+
+pdf_path = '../data/2007.pdf'
+pdf.process2(pdf_path)
+# %%
+pdf_path = '../data/2008.pdf'
+pdf.process2(pdf_path)
+
+pdf_path = '../data/2009.pdf'
+pdf.process2(pdf_path)
+# %%
+pdf_path = '../data/2010.pdf'
+pdf.process2(pdf_path)
+
+pdf_path = '../data/2011.pdf'
+pdf.process2(pdf_path)
+
+# %%
+
+# %%
+# Count unique cities, years, and categories
+num_cities = pdf.cityIndexDf.columns.get_level_values('City').nunique()
+num_years = pdf.cityIndexDf.columns.get_level_values('Year').nunique()
+num_categories = pdf.cityIndexDf.index.nunique()
+
+print(f"Number of unique cities: {num_cities}")
+print(f"Number of unique years: {num_years}")
+print(f"Number of unique categories: {num_categories}")
+# %%
+
+# Total number of values in the DataFrame
+total_values = pdf.cityIndexDf.size
+
+# Count NaN values in the DataFrame
+nan_count = pdf.cityIndexDf.isna().sum().sum()
+
+# Calculate the proportion of NaN values
+nan_proportion = nan_count / total_values
+
+print(f"Total number of values: {total_values}")
+print(f"Total number of NaN values: {nan_count}")
+# formatted as a percentage
+print(f"Proportion of NaN values: {nan_proportion:.2%}")
+
+# %%
+# import openpyxl
+# Save DataFrame to Excel file
+pdf.cityIndexDf.to_excel('cityIndexData2002-2011 .xlsx', sheet_name='City Data', engine='openpyxl')
+
+# %%

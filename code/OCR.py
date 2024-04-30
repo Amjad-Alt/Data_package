@@ -6,6 +6,7 @@ import os
 import glob
 import pandas as pd
 import re
+import pdfplumber
 # %%
 # # Set the path for the Tesseract engine executable
 # pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
@@ -132,7 +133,7 @@ class OCRAAlt:
             "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
             "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
         ]
-        self.years = list(range(2012, 2014))
+        self.years = list(range(2012, 2015))
 
         # Setup multi-level columns for the DataFrame
         multicolumns = pd.MultiIndex.from_product(
@@ -366,6 +367,25 @@ class OCRAAlt:
                         found_months[0], rowIndex, numbers[0]])
         return data
 
+    def mach2(self,  values_to_assign, rowIndex, found_year, found_months, found_cities):
+        data = []
+        numbers = values_to_assign.copy()
+        if len(numbers) < 6:
+            print(
+                f"Row not read properly. Cities: {found_cities}, RowIndex: {rowIndex}, Year: {found_year}, Months: {found_months}")
+            return data
+
+        if len(found_cities) == 2 and len(found_months) == 2:
+            # values are in a specific order
+            data.append([found_cities[0], found_year,
+                        found_months[1], rowIndex, numbers[0]])
+            data.append([found_cities[0], found_year,
+                        found_months[0], rowIndex, numbers[1]])
+            data.append([found_cities[1], found_year,
+                        found_months[1], rowIndex, numbers[3]])
+            data.append([found_cities[1], found_year,
+                        found_months[0], rowIndex, numbers[4]])
+        return data
     def check(self, city, year, month, rowIndex, expected_value):
         """
         Check if the value in the DataFrame for the specified city, year, month, and rowIndex
@@ -390,7 +410,39 @@ class OCRAAlt:
         except KeyError:
             print(
                 f"Data not found for City: {city}, Year: {year}, Month: {month}, Category: {rowIndex}")
+    def read_pdf(self, pdf_path):
+        """
+        Read text from each page of a PDF file.
 
+        Args:
+            pdf_path (str): Path to the PDF file to read.
+
+        Returns:
+            list of str: Text extracted from each page of the PDF.
+        """
+        text = []
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:  # Check if text was extracted
+                    text.append(page_text)
+                else:
+                    text.append("")  # Append empty string if no text is extracted
+        return text
+    
+    def check_page_type(self, page_text):
+        """
+        Check if the page contains specific content indicating it's about cities.
+
+        Args:
+            page_text (str): Text from a single PDF page.
+
+        Returns:
+            bool: True if the page is relevant, False otherwise.
+        """
+        pattern = re.compile(r'Table 4', re.IGNORECASE)
+        return bool(pattern.search(page_text))
+    
     def process(self, pdf_path):
         """Main method to process the PDF file.
         """
@@ -439,6 +491,22 @@ class OCRAAlt:
                     self.check(city, year, month, rowIndex,
                                expected_value)  # Validation check
 
+    def process2(self, pdf_path):
+        """
+        Process the PDF file using the pdfplumber library for text extraction.
+        """
+        texts = self.read_pdf(pdf_path)
+        for text in texts:
+            if self.check_page_type(text):
+                # Proceed with processing this page
+                found_year, found_months, found_cities = self.year_months_cities(text)
+                if found_year and found_months and found_cities:
+                    values_to_assign = self.values(text, self.rowIndices)
+                    for rowIndex, values in values_to_assign.items():
+                        matched_data = self.mach2(values, rowIndex, found_year, found_months, found_cities)
+                        for data in matched_data:
+                            city, year, month, rowIndex, value = data
+                            self.cityIndexDf.loc[rowIndex, (city, year, month)] = value
 
 # %%
 ocr_alt = OCRAAlt()
@@ -482,6 +550,6 @@ print(f"Proportion of NaN values: {nan_proportion:.2%}")  # formatted as a perce
 # %%
 #import openpyxl
 # Save DataFrame to Excel file
-ocr_alt.cityIndexDf.to_excel('cityIndexData.xlsx', sheet_name='City Data', engine='openpyxl')
+ocr_alt.cityIndexDf.to_excel('cityIndexData2012-2014.xlsx', sheet_name='City Data', engine='openpyxl')
 
 # %%
