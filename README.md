@@ -1,21 +1,25 @@
 
 # Sprice - Consumer Price Data for Saudi Arabia
 
-This data package contains two comprehensive datasets on consumer prices in 56 categories across 16 cities in Saudi Arabia, tracked monthly from 2002 to 2011 then from 2012 to 2023. It is designed to help analysts, economists, and policymakers analyze trends in consumer prices and inflation.
+This data package contains two comprehensive datasets on consumer prices of 56 categories across 16 cities in Saudi Arabia, tracked monthly from 2002 to 2011 then from 2012 to 2023. It is designed to help analysts, economists, and policymakers analyze trends in consumer prices and inflation.
 
 **Content:**   
-1.Pacakge Content  
+1.Overview  
 1.2 About the Data   
 1.2.1 sprice_data_1   
 1.2.2 sprice_data_2   
 2.Methodology  
 2.1. Data Processing Pipeline    
-2.2. Saving   
-2.3. Challanges  
+2.2. Saving  
+2.3. Packaging    
+3.Challanges  
 Reference      
 
 
-## 1.Pacakge Content
+## 1.Overview   
+The Consumer Price Index (CPI) in Saudi Arabia is a comprehensive survey designed to measure the retail price fluctuations of goods and services in the consumer basket across the Kingdom. It plays a crucial role in understanding economic conditions and supporting the objectives of Vision 2030 by providing detailed statistical data on consumer prices. The data includes indices and variation rates by expenditure category, city, and time period, starting from 2013. It adheres to international standards, utilizing the Classification of Individual Consumption by Purpose (COICOP) for accurate data collection and classification. This survey is fundamental for various stakeholders, including government entities, regional organizations, and research institutions, offering insights into spending patterns and price changes essential for economic analysis and decision-making. The CPI data is available and regularly updated on the General Authority for Statistics' official website, ensuring accessibility and transparency.
+
+### 1.2 About the Data
 
 There are two datasets in the package, and the reason they are devides into two is that from 2002 to 2011 they follow the same categories, then from 2012 to 2023 the categories have changed significantly that it was more suitable to have them as different datasets but follow the same structure as MultiIndex dataset.
 
@@ -30,7 +34,6 @@ There are two datasets in the package, and the reason they are devides into two 
 
 *Each dataset contains detailed consumer price indices, broken down by city, category, and month, providing a comprehensive view of consumer price trends over the specified years.*
 
-### 1.2 About the Data
 **1.2.1 sprice_data_1**
 - Years: 2002 to 2011 `integer`
 - Months: the 12 months `string`
@@ -70,10 +73,33 @@ HDF5 was selected for its ability to efficiently handle large volumes of complex
 
 A key limitation with HDF5 is that it has restrictions on handling missing values, particularly for non-floating point data types. Therefore we used -1 as an indicate that this is a missing value. 
 
-### 2.3. Challanges
+### 2.3. Packaging
+Data comes in a clean, processed format that is ideal for immediate use in data analysis and visualization tools. Easy to use by simple installation and straightforward API make accessing data hassle-free.
+
+**Installation**   
+To install sprice, simply run the following command:
+
+```bash
+pip install sprice
+```
+After installation, the data can be loaded into a Python environment using:
+
+```python
+import sprice
+data1 = sprice.sprice_data_1
+data2 = sprice.sprice_data_2
+
+print(data1.head())
+print(data2.head())
+```   
+### 4. Challanges
 
 every file format has a different process of extracting the data and it was challenging to navigate through the data to figure out a method that is flexible to all files yet accurate. It is important to understand the data and how it is displayed yet there are always things that come up on the way like different city spelling, different category names but the same meaning, sudden different indexing, empty rows and columns, unorganized structure of the data, etc. The hardest part is to find a foundation that all the 22 years stand on. Then organize them into groups based on the data format and how it is displayed, and create a solid pipeline for each group that considers the small variations within each file. 
 
+
 ## References    
 ### Data Source
-Data collected from here: https://www.stats.gov.sa/en/394
+General Authority for Statistics. (n.d.). Consumer Price Indices. Retrieved January 3, 2024, from https://www.stats.gov.sa/en/394
+
+### License
+Sprice is released under the MIT license. Please see the LICENSE file for more details.
