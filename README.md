@@ -3,7 +3,7 @@
 
 This data package contains two comprehensive datasets on consumer prices in 56 categories across 16 cities in Saudi Arabia, tracked monthly from 2002 to 2011 then from 2012 to 2023. It is designed to help analysts, economists, and policymakers analyze trends in consumer prices and inflation.
 
-**Content:**
+**Content:**   
 1.Pacakge Content  
 1.2 About the Data   
 1.2.1 sprice_data_1   
@@ -43,8 +43,8 @@ There are two datasets in the package, and the reason they are devides into two 
 - Cities: 16 cities (Riyadh, Makkah, Jeddah, Dammam, Tiaf, Medina, Abha, Alhofof, Tabuk, Buraydah, Jazzan, Hail, Njran, Baha, Skaka and Arar) `string`
 - Categories (each as a standing column): General Index, FOOD AND BEVERAGES, FOOD, BEVERAGES, TOBACCO, CLOTHING AND FOOTWEAR, CLOTHING, FOOTWEAR, HOUSING, WATER, ELECTRI-CITY ,GAS AND OTHER FUELS, RENTALS FOR HOUSING, MAITENANCE OF THE DEWELLING, WATER SUPPLY & OTHER SERVICES, ELECTRICITY, GAS AND OTHER FUELS, FURNISHINGS, HOUSEHOLD EQUIPMENT AND MAINTENANCE, FURNITURE & CARPETS, HOUSEHOLD TEXTILES, HOUSEHOLD APPLIANCES, HOUSEHOLD UTENSILS, TOOLS FOR HOUSE & GARDEN, GOODS FOR HOUSEHOLD MAINTENANCE, HEALTH, MEDICAL PRODUCTS & EQUIPMENT, OUTPATIENT SERVICES, HOSPITAL SERVICES, TRANSPORT, PURCHASE OF VEHICLES, OPERATION OF TRANSPORT EQUIPMENT, TRANSPORT SERVICES, COMMUNICATION, POSTAL SERVICES, TELEPHONE AND TELEFAX EQUIPMENT, TELEPHONE AND TELEFAX SERVICES, RECREATION AND CULTURE, AUDIO, PHOTO & INFO. EQUIPMENT, OTHER RECREATION & CULTURE GOODS, OTHER RECREATIONAL GOODS, RECREATIONAL & CULTURAL SERVICES, NEWSPAPERS, BOOKS & STATIONERY, PACKAGE HOLIDAYS, EDUCATION, PRE-PRIMARY & PRIMARY EDUCATION, SECONDARY&INTERMEDIATE EDUCATION, POST-SECONDARY EDUCATION, TERTIARY EDUCATION, RESTAURANTS AND HOTELS, CATERING SERVICE, ACCOMMODATION SERVICES, MISCELLANEOUS GOODS AND SERVICES, PERSONAL CARE, PERSONAL EFFECTS N.E.C., SOCIAL PROTECTION, INSURANCE, FINANCIAL SERVICES N.E C., OTHER SERVICES N.E.C. `float`
 
-**Fig 1**
-*Final dataset displayed*
+**Fig 1**   
+*Final dataset display*
 <img src="pictures/dataset_picture.png" alt="Dataset Preview" width="600"/>
 
 *This image shows a sample of the `sprice_data_1.h5` file, illustrating the MultiIndex structure with cities, years, and months as indices.*
@@ -52,15 +52,17 @@ There are two datasets in the package, and the reason they are devides into two 
 
 ## 2.Methodology
 
-The journey of developing the Sprice data processing pipelines has been both intricate and demanding. Each file format presents its own set of challenges in terms of data extraction, necessitating a deep understanding of the content structure and the nuances inherent in each format. Crafting a method that is both flexible and accurate across all file types required significant innovation and perseverance. the methodolgy goes in three stages; first data preprosessing pipelines, then data saving and data packaging.
+The journey of developing the Sprice data processing pipelines has been both challenging and demanding. Each file format presents its own set of challenges in terms of data extraction, requiring a deep understanding of the content structure and the variations in each format. Crafting a method that is both flexible and accurate. Three stages are involved in the methodology: data preprocessing pipelines, data saving, and data packaging.
 
 ### 2.1. Data Processing Pipeline
 
-There are four pipelines for each file structure, including PDFs, scanned files, Excel xlxs, and Excel csv. The cores are the same, but the details are different due to the different nature of the displayed data and how the information should be extracted.
+All pipelines share a foundational approach starting with the setup of a structured multi-index DataFrame designed to categorize and store extracted data effectively. Each pipeline begins by reading files specific to its format—PDF, OCR, or Excel. It then extracts critical identifiers like month, year, city, and category through tailored techniques—ranging from regular expressions in PDFs to direct cell access in Excel. After extracting the relevant data, the pipelines match these identifiers with the extracted values and systematically insert them into the DataFrame where city, month, year, and category align. This ensures that the data across various formats is integrated cohesively and consistently for accurate analysis and reporting.
 
-The base core of the processing system: function to read the data from the file > function to extract the page needed by checking unique text > function to extract the month, the year, and the city> function to extract the category name and it's values > function to mach the category and the value to its year, month, and city.
+**Fig 2**   
+*Multi-Source Data Extraction Methodology for each pipeline*
+<img src="pictures/method.png" alt="Dataset Preview" width="600"/>
 
-**Fig 2**
+*Robust pipelines employ specialized techniques for reading, identifying, extracting, and aligning data from PDF, OCR, and Excel sources, ensuring precise integration across diverse formats*
 
 ### 2.2. Saving
 
